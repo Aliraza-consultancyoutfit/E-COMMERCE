@@ -32,4 +32,12 @@
 - **Remember-me** kept visually; cookie TTL is the real control.
 - Noted: `POST /auth/login` returns `201` (Nest default) — semantically `200`, left for polish.
 
+### Module 2 — Product catalog
+- **Design:** `Storefront.dc.html` (Landing + Catalog).
+- **Product images:** `image` URL field; empty → themed placeholder tile (admin sets URLs in module 7). Chose URL over upload for breadth.
+- **Catalog filters:** category is **single-select** (backend filters one category); rating/in-stock filters + grid/list toggle from the design are deferred (not in the list endpoint).
+- **Pagination:** storefront uses numbered MUI `Pagination`; `components/custom-pagination` (table-oriented) is reserved for admin tables.
+- **Routing:** public storefront lives in a `(storefront)` route group with navbar+footer shell; replaced the placeholder root `page.tsx`.
+- **Env:** `next build` needs free RAM — local dev servers (a 1.2 GB FE dev) can starve it; reclaim orphaned node processes first.
+
 _Seeded credentials (local/dev): `admin@elitecart.com` / `Admin123!`, `customer@elitecart.com` / `Customer123!`._
