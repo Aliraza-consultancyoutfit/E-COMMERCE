@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import {
   Avatar,
   Box,
@@ -20,10 +21,15 @@ import { alpha } from "@mui/material/styles";
 import { ExportIcon } from "@/assets/icons/common";
 import ApiErrorState from "@/components/api-error-state";
 import NoData from "@/components/no-data";
-import { OrderStatusChip, formatOrderDate } from "@/ui/admin/order-status";
+import { OrderStatusChip, STATUS_META, formatOrderDate } from "@/ui/admin/order-status";
 import { PATHS } from "@/constants/routes";
-import { useGetAllOrdersQuery } from "@/store/orders/order.api";
+import {
+  useGetAllOrdersQuery,
+  useLazyGetAllOrdersQuery,
+} from "@/store/orders/order.api";
 import type { OrderStatus } from "@/store/orders/order.types";
+import { getApiErrorMessage } from "@/utils/api-error";
+import { downloadCsv } from "@/utils/csv";
 import { formatCurrency } from "@/utils/format";
 
 const PAGE_LIMIT = 10;
@@ -57,6 +63,33 @@ export default function AdminOrders() {
   });
   const records = data?.records ?? [];
   const meta = data?.meta;
+
+  const [fetchForExport, { isFetching: exporting }] = useLazyGetAllOrdersQuery();
+
+  const handleExport = async () => {
+    try {
+      const result = await fetchForExport({ page: 1, limit: meta?.total || 1000, status }).unwrap();
+      if (result.records.length === 0) {
+        toast.error("No orders to export");
+        return;
+      }
+      const rows = [
+        ["Order", "Customer", "Email", "Date", "Status", "Total"],
+        ...result.records.map((order) => [
+          orderNumber(order._id),
+          order.user?.name || order.user?.email?.split("@")[0] || "—",
+          order.user?.email || "",
+          formatOrderDate(order.createdAt),
+          STATUS_META[order.status].label,
+          order.total,
+        ]),
+      ];
+      downloadCsv(`orders-${status ?? "all"}.csv`, rows);
+      toast.success(`Exported ${result.records.length} orders`);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    }
+  };
 
   return (
     <Box>
@@ -112,10 +145,12 @@ export default function AdminOrders() {
         <Button
           variant="outlined"
           color="inherit"
+          disabled={exporting || !meta?.total}
           startIcon={<ExportIcon width="16" height="16" stroke="currentColor" />}
+          onClick={handleExport}
           sx={{ ml: "auto", borderColor: "divider", color: "text.primary" }}
         >
-          Export
+          {exporting ? "Exporting…" : "Export"}
         </Button>
       </Stack>
 

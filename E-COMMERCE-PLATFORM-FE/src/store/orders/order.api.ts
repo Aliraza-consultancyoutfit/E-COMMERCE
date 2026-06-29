@@ -53,6 +53,7 @@ export const {
   useGetMyOrdersQuery,
   useGetOrderQuery,
   useGetAllOrdersQuery,
+  useLazyGetAllOrdersQuery,
   useGetAdminOrderQuery,
   useGetAdminStatsQuery,
   useUpdateOrderStatusMutation,
