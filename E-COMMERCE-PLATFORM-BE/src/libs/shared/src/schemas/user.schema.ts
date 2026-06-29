@@ -23,6 +23,19 @@ export class User {
   /** Profile picture as a base64 data URL (small, resized client-side). */
   @Prop({ default: "" })
   avatar: string;
+
+  @Prop({ default: true })
+  notifyOrders: boolean;
+
+  @Prop({ default: true })
+  notifyPromotions: boolean;
+
+  @Prop({ default: false })
+  notifyRecommendations: boolean;
+
+  // NOTE: stored UI flag, not enforced (no real TOTP)
+  @Prop({ default: false })
+  twoFactorEnabled: boolean;
 }
 
 export type UserDocument = HydratedDocument<User>;

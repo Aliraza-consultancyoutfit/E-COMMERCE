@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -8,6 +9,7 @@ import {
   CreateAdminDto,
   CreateUserDto,
   CustomerQueryDto,
+  UpdateProfileDto,
 } from "../../../libs/shared/src/dto";
 import {
   Order,
@@ -16,7 +18,7 @@ import {
   UserDocument,
   UserRole,
 } from "../../../libs/shared/src/schemas";
-import { hashValue } from "../../../libs/shared/src/utils";
+import { compareHash, hashValue } from "../../../libs/shared/src/utils";
 import { isValidObjectId, Model, Types } from "mongoose";
 
 interface CustomerOrder {
@@ -67,14 +69,32 @@ export class UsersService {
       email: user.email,
       role: user.role,
       avatar: user.avatar,
+      notifyOrders: user.notifyOrders,
+      notifyPromotions: user.notifyPromotions,
+      notifyRecommendations: user.notifyRecommendations,
+      twoFactorEnabled: user.twoFactorEnabled,
     };
   }
 
-  async updateProfile(id: string, update: { name?: string; avatar?: string }) {
+  async updateProfile(id: string, update: UpdateProfileDto) {
     await this.userModel
       .findByIdAndUpdate(id, update, { new: true, runValidators: true })
       .exec();
     return this.getProfile(id);
+  }
+
+  async changePassword(id: string, currentPassword: string, newPassword: string) {
+    const user = await this.userModel.findById(id).exec();
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+    const isCurrentValid = await compareHash(currentPassword, user.password);
+    if (!isCurrentValid) {
+      throw new BadRequestException("Current password is incorrect");
+    }
+    user.password = await hashValue(newPassword);
+    await user.save();
+    return { success: true };
   }
 
   /** Admin: paginated customers (role=user) with order count + lifetime spend. */

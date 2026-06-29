@@ -2,6 +2,7 @@ import { Body, Controller, Get, Patch, Post, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../../../libs/shared/src/decorators";
 import {
+  ChangePasswordDto,
   LoginDto,
   RegisterDto,
   UpdateProfileDto,
@@ -58,5 +59,17 @@ export class AuthController {
   @ApiOkResponse({ description: "Update the current user's profile." })
   updateProfile(@CurrentUser() user: JwtUser, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(user.sub, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch("password")
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Change the current user's password." })
+  changePassword(@CurrentUser() user: JwtUser, @Body() dto: ChangePasswordDto) {
+    return this.usersService.changePassword(
+      user.sub,
+      dto.currentPassword,
+      dto.newPassword,
+    );
   }
 }

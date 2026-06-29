@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsInt,
@@ -80,4 +81,24 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  notifyOrders?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  notifyPromotions?: boolean;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
+  notifyRecommendations?: boolean;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
+  twoFactorEnabled?: boolean;
 }
