@@ -5,7 +5,8 @@ export const orderApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     checkout: builder.mutation<Order, CheckoutArgs>({
       query: (body) => ({ url: "/orders/checkout", method: "POST", body }),
-      invalidatesTags: ["Cart", "Order"],
+      // Product/category stock changes after a purchase, so refresh those too.
+      invalidatesTags: ["Cart", "Order", "Product"],
     }),
     getOrder: builder.query<Order, string>({
       query: (id) => ({ url: `/orders/${id}` }),

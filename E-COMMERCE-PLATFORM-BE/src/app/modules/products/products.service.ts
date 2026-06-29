@@ -70,9 +70,11 @@ export class ProductsService {
   }
 
   async getCategories() {
+    // count = total available stock per category, so it drops as orders are
+    // placed (checkout decrements stock atomically).
     const grouped = await this.productModel
       .aggregate<{ _id: string; count: number }>([
-        { $group: { _id: "$category", count: { $sum: 1 } } },
+        { $group: { _id: "$category", count: { $sum: "$stock" } } },
         { $sort: { _id: 1 } },
       ])
       .exec();
