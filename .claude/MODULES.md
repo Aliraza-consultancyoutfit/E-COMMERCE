@@ -11,7 +11,7 @@ The order follows the spec's suggested checklist: foundation → auth → storef
 | 1 | **Auth** | register/login/me (done) → harden: roles in JWT, GuestGuard/(auth) + AuthGuard, sign-in/sign-up UI, session persistence | 0 | ✅ shipped | `feature/01-auth` |
 | 2 | **Product catalog (storefront read)** | Product schema (name, description, price, image, category, stock); list endpoint with **search + category filter + price range + sort (price/newest) + pagination**; storefront catalog page with filters/sort/pagination using shared table/cards | 0,1 | ✅ shipped | `feature/02-product-catalog` |
 | 3 | **Product detail** | get-one endpoint; detail page with full info + quantity selector + add-to-cart | 2 | ✅ shipped | `feature/03-product-detail` |
-| 4 | **Cart** | Cart schema (per user); add/remove/update qty; **persists across sessions for logged-in user**; line totals + order total computed server-side | 1,3 | ⬜ todo | |
+| 4 | **Cart** | Cart schema (per user); add/remove/update qty; **persists across sessions for logged-in user**; line totals + order total computed server-side | 1,3 | ✅ shipped | `feature/04-cart` |
 | 5 | **Checkout & Orders** | Order schema; checkout flow with **mock / Stripe test-mode** payment; create order on success; **decrement stock atomically**; reject ordering > stock; recompute price server-side (no client-trusted totals); order confirmation page | 4 | ⬜ todo | |
 | 6 | **Order history (customer)** | list-my-orders endpoint (own orders only) + status; customer order history page | 5 | ⬜ todo | |
 | 7 | **Admin — product management** | admin-only CRUD for products; image upload **or** URL (document choice); admin product table + create/edit modal + delete confirm | 2 (admin guard from 0) | ⬜ todo | |

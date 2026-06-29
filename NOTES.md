@@ -46,4 +46,11 @@
 - **Add to cart / Buy now auth-gate now**; real server-cart mutation lands in Module 4.
 - **Specs/Reviews** derived from real fields + aggregate rating (no fabricated reviews); **wishlist heart** deferred to Module 6.
 
+### Module 4 — Cart
+- **Design:** `Storefront.dc.html` (Cart).
+- Per-user server cart (persists across sessions); JWT-guarded, **ownership-scoped by token** (no IDOR). Totals (subtotal/discount/shipping/tax/total) **computed server-side** from current prices — client total never trusted.
+- **Coupon WELCOME10 = 10% off** (server-validated, stored on cart; invalid → 400). Shipping free ≥ $100 else $8; tax 8%.
+- Quantity **clamped to stock** on add/update; the hard oversell guard is the atomic decrement at checkout (Module 5).
+- `useAddToCart` auth-gates guests → sign-in. **Proceed-to-checkout** routes to `/checkout` (built in Module 5).
+
 _Seeded credentials (local/dev): `admin@elitecart.com` / `Admin123!`, `customer@elitecart.com` / `Customer123!`._
