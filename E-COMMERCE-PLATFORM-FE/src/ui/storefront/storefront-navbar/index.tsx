@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   AppBar,
   Avatar,
+  Badge,
   Box,
   Button,
   Container,
@@ -22,6 +23,7 @@ import { ShoppingCartIcon } from "@/assets/icons/common";
 import ThemeSwitch from "@/components/theme-switch";
 import { PATHS } from "@/constants/routes";
 import { logout } from "@/store/auth/auth.slice";
+import { useGetCartQuery } from "@/store/cart/cart.api";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { removeToken } from "@/utils/auth-token";
 
@@ -35,6 +37,8 @@ export default function StorefrontNavbar() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const { data: cart } = useGetCartQuery(undefined, { skip: !user });
+  const cartCount = cart?.summary.itemCount ?? 0;
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [search, setSearch] = useState("");
 
@@ -144,7 +148,9 @@ export default function StorefrontNavbar() {
               href={PATHS.cart}
               aria-label="Cart"
             >
-              <ShoppingCartIcon width="22" height="22" />
+              <Badge badgeContent={cartCount} color="primary" overlap="circular">
+                <ShoppingCartIcon width="22" height="22" />
+              </Badge>
             </IconButton>
 
             {user ? (

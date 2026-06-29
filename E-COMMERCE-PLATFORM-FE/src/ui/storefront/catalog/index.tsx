@@ -19,6 +19,7 @@ import {
 import NoData from "@/components/no-data";
 import ApiErrorState from "@/components/api-error-state";
 import ProductCard from "@/ui/storefront/product-card";
+import { useAddToCart } from "@/ui/storefront/use-add-to-cart";
 import CatalogFilters, { PRICE_CEILING } from "./catalog-filters";
 import { PATHS } from "@/constants/routes";
 import {
@@ -50,6 +51,7 @@ export default function Catalog() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const search = searchParams.get("search") ?? undefined;
+  const { add } = useAddToCart();
 
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [priceMax, setPriceMax] = useState(PRICE_CEILING);
@@ -198,6 +200,7 @@ export default function Catalog() {
                     product={product}
                     showStockBadge
                     onOpen={() => router.push(PATHS.product(product._id))}
+                    onQuickAdd={() => add(product._id, 1)}
                   />
                 ))}
               </Box>

@@ -17,6 +17,7 @@ import { alpha } from "@mui/material/styles";
 import { ArrowIcon, ShieldIcon, ShoppingCartIcon } from "@/assets/icons/common";
 import ProductCard from "@/ui/storefront/product-card";
 import { CategoryAvatar } from "@/ui/storefront/category-visuals";
+import { useAddToCart } from "@/ui/storefront/use-add-to-cart";
 import { PATHS } from "@/constants/routes";
 import {
   useGetCategoriesQuery,
@@ -63,6 +64,7 @@ function SectionHeading({
 
 export default function Landing() {
   const router = useRouter();
+  const { add } = useAddToCart();
   const [email, setEmail] = useState("");
   const { data: featured, isLoading: loadingFeatured } = useGetProductsQuery({
     limit: 4,
@@ -250,6 +252,7 @@ export default function Landing() {
                   key={product._id}
                   product={product}
                   onOpen={() => router.push(PATHS.product(product._id))}
+                  onQuickAdd={() => add(product._id, 1)}
                 />
               ))}
         </Box>

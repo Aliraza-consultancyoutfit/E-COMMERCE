@@ -3,7 +3,6 @@
 import { useState } from "react";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
 import {
   Box,
   Breadcrumbs,
@@ -35,7 +34,7 @@ import {
   useGetProductQuery,
   useGetProductsQuery,
 } from "@/store/products/products.api";
-import { useAppSelector } from "@/store/hooks";
+import { useAddToCart } from "@/ui/storefront/use-add-to-cart";
 import { formatCurrency } from "@/utils/format";
 
 const TABS = ["Description", "Specifications", "Reviews"] as const;
@@ -48,7 +47,7 @@ const FEATURES = [
 
 export default function ProductDetail({ id }: { id: string }) {
   const router = useRouter();
-  const user = useAppSelector((state) => state.auth.user);
+  const { add, isLoading: isAdding } = useAddToCart();
   const { data: product, isLoading, isError, refetch } =
     useGetProductQuery(id);
 
@@ -114,14 +113,12 @@ export default function ProductDetail({ id }: { id: string }) {
     .filter((item) => item._id !== product._id)
     .slice(0, 4);
 
-  // Add-to-cart is wired to the server cart in Module 4; here it auth-gates.
-  const handleAddToCart = () => {
-    if (!user) {
-      toast("Please sign in to add items to your cart", { icon: "ℹ️" });
-      router.push(PATHS.auth.signIn);
-      return;
+  const handleAddToCart = () => add(product._id, qty);
+  const handleBuyNow = async () => {
+    const added = await add(product._id, qty);
+    if (added) {
+      router.push(PATHS.cart);
     }
-    toast("Cart is enabled in the next module", { icon: "🛒" });
   };
 
   return (
@@ -292,7 +289,7 @@ export default function ProductDetail({ id }: { id: string }) {
               variant="contained"
               size="large"
               fullWidth
-              disabled={!inStock}
+              disabled={!inStock || isAdding}
               startIcon={<ShoppingCartIcon width="19" height="19" stroke="currentColor" />}
               onClick={handleAddToCart}
               sx={{ height: 52 }}
@@ -303,8 +300,8 @@ export default function ProductDetail({ id }: { id: string }) {
               variant="outlined"
               size="large"
               fullWidth
-              disabled={!inStock}
-              onClick={handleAddToCart}
+              disabled={!inStock || isAdding}
+              onClick={handleBuyNow}
               sx={{ height: 52 }}
             >
               Buy now
@@ -434,6 +431,7 @@ export default function ProductDetail({ id }: { id: string }) {
                 key={item._id}
                 product={item}
                 onOpen={() => router.push(PATHS.product(item._id))}
+                onQuickAdd={() => add(item._id, 1)}
               />
             ))}
           </Box>
