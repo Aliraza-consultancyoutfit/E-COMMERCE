@@ -37,3 +37,4 @@ export { default as CalendarIcon } from "./calendar-icon";
 export { default as BillingAddressIcon } from "./billing-address-icon";
 export { default as StarIcon } from "./star-icon";
 export { default as ShieldIcon } from "./shield-icon";
+export { default as PlusIcon } from "./plus-icon";
