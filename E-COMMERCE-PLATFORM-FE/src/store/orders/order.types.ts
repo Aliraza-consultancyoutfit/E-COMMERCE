@@ -79,3 +79,15 @@ export interface PaymentIntentResponse {
   clientSecret: string;
   amount: number;
 }
+
+export interface CheckoutSessionArgs {
+  shippingAddress: ShippingAddress;
+}
+
+export interface CheckoutSessionResponse {
+  url: string | null;
+}
+
+export interface CompleteSessionArgs {
+  sessionId: string;
+}

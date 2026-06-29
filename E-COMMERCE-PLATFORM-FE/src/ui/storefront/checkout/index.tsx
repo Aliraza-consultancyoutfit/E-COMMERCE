@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import {
   Box,
   Button,
+  CircularProgress,
   Container,
   Divider,
   Stack,
@@ -16,7 +17,9 @@ import {
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
-  CardElement,
+  CardCvcElement,
+  CardExpiryElement,
+  CardNumberElement,
   Elements,
   useElements,
   useStripe,
@@ -29,6 +32,8 @@ import { PATHS } from "@/constants/routes";
 import { useGetCartQuery } from "@/store/cart/cart.api";
 import {
   useCheckoutMutation,
+  useCompleteSessionMutation,
+  useCreateCheckoutSessionMutation,
   useCreatePaymentIntentMutation,
 } from "@/store/orders/order.api";
 import type { Order } from "@/store/orders/order.types";
@@ -37,12 +42,6 @@ import { formatCurrency } from "@/utils/format";
 import { stripePromise } from "@/utils/stripe";
 
 const STEPS = ["Shipping", "Billing", "Payment", "Review"];
-const STEP_FIELDS: Record<number, (keyof CheckoutValues)[]> = {
-  1: ["firstName", "lastName", "street", "city", "zip"],
-  2: ["sameAsShipping"],
-  3: ["nameOnCard"],
-  4: [],
-};
 
 const schema = yup.object({
   firstName: yup.string().trim().required("First name is required"),
@@ -51,12 +50,14 @@ const schema = yup.object({
   city: yup.string().trim().required("City is required"),
   zip: yup.string().trim().required("ZIP code is required"),
   sameAsShipping: yup.boolean().default(true),
-  nameOnCard: yup.string().trim().required("Name on card is required"),
+  nameOnCard: yup.string().trim().default(""),
 });
 
 type CheckoutValues = yup.InferType<typeof schema>;
-
 type View = "steps" | "success" | "failure";
+type PayMethod = "card" | "stripe";
+
+const SHIPPING_FIELDS: (keyof CheckoutValues)[] = ["firstName", "lastName", "street", "city", "zip"];
 
 function Stepper({ step }: { step: number }) {
   return (
@@ -113,12 +114,34 @@ function CheckoutInner() {
   const { data: cart, isLoading: cartLoading } = useGetCartQuery();
   const [createPaymentIntent] = useCreatePaymentIntentMutation();
   const [checkout] = useCheckoutMutation();
+  const [createCheckoutSession] = useCreateCheckoutSessionMutation();
+  const [completeSession] = useCompleteSessionMutation();
 
   const [step, setStep] = useState(1);
   const [view, setView] = useState<View>("steps");
+  const [method, setMethod] = useState<PayMethod>("stripe");
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
-  const [cardComplete, setCardComplete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [completingSession, setCompletingSession] = useState(false);
+  const [card, setCard] = useState({ number: false, expiry: false, cvc: false });
+  const cardComplete = card.number && card.expiry && card.cvc;
+  const sessionHandled = useRef(false);
+  const [stripeFailed, setStripeFailed] = useState(false);
+
+  // If Stripe.js never initializes (ad-blocker / no network / missing key),
+  // the card iframes stay empty and un-typeable — fall back to the hosted
+  // Stripe Checkout method, which doesn't depend on Stripe.js in the browser.
+  useEffect(() => {
+    if (stripe) {
+      setStripeFailed(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setStripeFailed(true);
+      setMethod("stripe");
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [stripe]);
 
   const methods = useForm<CheckoutValues>({
     resolver: yupResolver(schema),
@@ -133,7 +156,34 @@ function CheckoutInner() {
     },
   });
 
-  const cardOptions = {
+  // Handle the return from Stripe-hosted Checkout (?session_id / ?canceled).
+  useEffect(() => {
+    if (sessionHandled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    const canceled = params.get("canceled");
+    if (!sessionId && !canceled) return;
+    sessionHandled.current = true;
+    window.history.replaceState({}, "", PATHS.checkout);
+
+    if (canceled) {
+      setView("failure");
+      return;
+    }
+    if (sessionId) {
+      setCompletingSession(true);
+      completeSession({ sessionId })
+        .unwrap()
+        .then((order) => {
+          setPlacedOrder(order);
+          setView("success");
+        })
+        .catch((error) => toast.error(getApiErrorMessage(error)))
+        .finally(() => setCompletingSession(false));
+    }
+  }, [completeSession]);
+
+  const elementStyle = {
     style: {
       base: {
         color: theme.palette.text.primary,
@@ -145,24 +195,40 @@ function CheckoutInner() {
     },
   };
 
-  const placeOrder = methods.handleSubmit(async (values) => {
-    const card = elements?.getElement(CardElement);
-    if (!stripe || !card) {
-      toast.error("Payment is still loading. Please try again.");
+  const fieldBoxSx = {
+    px: 1.75,
+    py: 1.75,
+    border: 1,
+    borderColor: "divider",
+    borderRadius: 3,
+    bgcolor: "background.paper",
+    "&:focus-within": { borderColor: "primary.main", boxShadow: (t: typeof theme) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.18)}` },
+  };
+
+  const payWithCard = methods.handleSubmit(async (values) => {
+    const cardNumber = elements?.getElement(CardNumberElement);
+    if (!stripe || !cardNumber) {
+      // Stripe.js didn't load (commonly an ad-blocker) — switch to the hosted
+      // Checkout method, which doesn't depend on the in-page Stripe iframe.
+      setMethod("stripe");
+      setStep(3);
+      toast.error("Card form couldn't load — use Stripe Checkout to continue.");
+      return;
+    }
+    if (!values.nameOnCard) {
+      methods.setError("nameOnCard", { message: "Name on card is required" });
       return;
     }
     setSubmitting(true);
     try {
       const { clientSecret } = await createPaymentIntent().unwrap();
       const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: { card, billing_details: { name: values.nameOnCard } },
+        payment_method: { card: cardNumber, billing_details: { name: values.nameOnCard } },
       });
-
       if (result.error || result.paymentIntent?.status !== "succeeded") {
         setView("failure");
         return;
       }
-
       const order = await checkout({
         shippingAddress: {
           firstName: values.firstName,
@@ -187,10 +253,35 @@ function CheckoutInner() {
     }
   });
 
+  const payWithStripe = async () => {
+    const values = methods.getValues();
+    setSubmitting(true);
+    try {
+      const { url } = await createCheckoutSession({
+        shippingAddress: {
+          firstName: values.firstName,
+          lastName: values.lastName,
+          street: values.street,
+          city: values.city,
+          zip: values.zip,
+        },
+      }).unwrap();
+      if (url) {
+        window.location.href = url;
+      } else {
+        toast.error("Could not start Stripe Checkout");
+        setSubmitting(false);
+      }
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+      setSubmitting(false);
+    }
+  };
+
   const handleNext = async () => {
     if (step < 4) {
-      const valid = await methods.trigger(STEP_FIELDS[step]);
-      if (step === 3 && !cardComplete) {
+      const valid = await methods.trigger(step === 1 ? SHIPPING_FIELDS : []);
+      if (step === 3 && method === "card" && !cardComplete) {
         toast.error("Enter your card details");
         return;
       }
@@ -199,8 +290,24 @@ function CheckoutInner() {
       }
       return;
     }
-    await placeOrder();
+    if (method === "card") {
+      await payWithCard();
+    } else {
+      await payWithStripe();
+    }
   };
+
+  // ----- Completing hosted session -----
+  if (completingSession) {
+    return (
+      <Container maxWidth="sm" sx={{ py: 10, textAlign: "center" }}>
+        <CircularProgress />
+        <Typography variant="h6" fontWeight={700} sx={{ mt: 3 }}>
+          Confirming your payment…
+        </Typography>
+      </Container>
+    );
+  }
 
   // ----- Success -----
   if (view === "success" && placedOrder) {
@@ -253,11 +360,10 @@ function CheckoutInner() {
           <CrossIcon width="38" height="38" stroke="currentColor" />
         </Box>
         <Typography variant="h4" fontWeight={700}>
-          Payment failed
+          Payment not completed
         </Typography>
         <Typography color="text.secondary" sx={{ mt: 1.5, mb: 3, lineHeight: 1.6 }}>
-          Your card was declined and no charge was made. Check your details or
-          try a different card.
+          No charge was made. Check your details or try a different card.
         </Typography>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
           <Button fullWidth variant="outlined" size="large" onClick={() => router.push(PATHS.cart)} sx={{ height: 48 }}>
@@ -293,7 +399,7 @@ function CheckoutInner() {
       <Stepper step={step} />
       <Box sx={{ display: "grid", gap: 3.5, alignItems: "start", gridTemplateColumns: { xs: "1fr", md: "1fr 360px" } }}>
         <Box sx={{ border: 1, borderColor: "divider", borderRadius: 4, p: 3.5 }}>
-          <FormProvider methods={methods} onSubmit={placeOrder}>
+          <FormProvider methods={methods} onSubmit={payWithCard}>
             {step === 1 && (
               <Box>
                 <Typography variant="h6" fontWeight={700} sx={{ mb: 2.5 }}>
@@ -336,31 +442,99 @@ function CheckoutInner() {
                     Secured by Stripe · test mode
                   </Typography>
                 </Stack>
-                <Stack spacing={2}>
-                  <RHFTextField name="nameOnCard" label="Name on card" placeholder="Jane Cooper" />
-                  <Box>
-                    <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
-                      Card details
-                    </Typography>
-                    <Box
-                      sx={{
-                        px: 1.75,
-                        py: 1.75,
-                        border: 1,
-                        borderColor: "divider",
-                        borderRadius: 3,
-                        bgcolor: "background.paper",
-                        "&:focus-within": { borderColor: "primary.main", boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.18)}` },
-                      }}
-                    >
-                      <CardElement options={cardOptions} onChange={(e) => setCardComplete(e.complete)} />
-                    </Box>
-                  </Box>
+
+                {/* Payment method toggle */}
+                <Stack direction="row" spacing={1} sx={{ p: 0.5, mb: 2.5, borderRadius: 2.5, border: 1, borderColor: "divider", bgcolor: "background.default", width: "fit-content" }}>
+                  {([["card", "Card"], ["stripe", "Stripe Checkout"]] as const).map(([value, label]) => {
+                    const activeMethod = method === value;
+                    return (
+                      <Box
+                        key={value}
+                        component="button"
+                        type="button"
+                        onClick={() => setMethod(value)}
+                        sx={{
+                          px: 2,
+                          py: 0.85,
+                          border: "none",
+                          borderRadius: 1.75,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          color: activeMethod ? "primary.main" : "text.secondary",
+                          bgcolor: activeMethod ? "background.paper" : "transparent",
+                          boxShadow: activeMethod ? 1 : "none",
+                        }}
+                      >
+                        {label}
+                      </Box>
+                    );
+                  })}
                 </Stack>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
-                  Test card <b>4242 4242 4242 4242</b>, any future expiry, any CVC. Use{" "}
-                  <b>4000 0000 0000 0002</b> to simulate a decline.
-                </Typography>
+
+                {method === "card" ? (
+                  <Stack spacing={2}>
+                    {stripeFailed && (
+                      <Box sx={{ p: 2, border: 1, borderColor: "warning.main", borderRadius: 3, bgcolor: (t) => alpha(t.palette.warning.main, 0.1) }}>
+                        <Typography variant="body2" fontWeight={600} color="warning.main" sx={{ mb: 0.5 }}>
+                          Secure card form couldn&apos;t load
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                          An ad-blocker or privacy extension may be blocking
+                          js.stripe.com. Disable it for this site (or open in a
+                          private window), or use <b>Stripe Checkout</b> above —
+                          it opens Stripe&apos;s own page instead.
+                        </Typography>
+                      </Box>
+                    )}
+                    <RHFTextField name="nameOnCard" label="Name on card" placeholder="Jane Cooper" />
+                    <Box>
+                      <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
+                        Card number
+                      </Typography>
+                      <Box sx={fieldBoxSx}>
+                        <CardNumberElement options={elementStyle} onChange={(e) => setCard((c) => ({ ...c, number: e.complete }))} />
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                      <Box>
+                        <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
+                          Expiry
+                        </Typography>
+                        <Box sx={fieldBoxSx}>
+                          <CardExpiryElement options={elementStyle} onChange={(e) => setCard((c) => ({ ...c, expiry: e.complete }))} />
+                        </Box>
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
+                          CVC
+                        </Typography>
+                        <Box sx={fieldBoxSx}>
+                          <CardCvcElement options={elementStyle} onChange={(e) => setCard((c) => ({ ...c, cvc: e.complete }))} />
+                        </Box>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Test card <b>4242 4242 4242 4242</b>, any future expiry, any CVC. Use{" "}
+                      <b>4000 0000 0000 0002</b> to simulate a decline.
+                    </Typography>
+                  </Stack>
+                ) : (
+                  <Box sx={{ p: 2.5, border: 1, borderColor: "divider", borderRadius: 3, bgcolor: (t) => alpha(t.palette.primary.main, 0.06) }}>
+                    {stripeFailed && (
+                      <Typography variant="body2" fontWeight={600} color="warning.main" sx={{ mb: 0.75 }}>
+                        The inline card form couldn&apos;t load (often an ad-blocker) — use this instead.
+                      </Typography>
+                    )}
+                    <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                      Pay on Stripe&apos;s secure page
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                      You&apos;ll be redirected to Stripe Checkout to complete payment,
+                      then brought back to confirm your order.
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             )}
 
@@ -384,7 +558,9 @@ function CheckoutInner() {
                       Payment
                     </Typography>
                     <Typography variant="body2">
-                      {methods.getValues("nameOnCard")} · secured by Stripe
+                      {method === "card"
+                        ? `${methods.getValues("nameOnCard") || "Card"} · secured by Stripe`
+                        : "Stripe Checkout (redirect)"}
                     </Typography>
                   </Box>
                 </Stack>
@@ -402,11 +578,17 @@ function CheckoutInner() {
                 variant="contained"
                 size="large"
                 fullWidth
-                disabled={submitting || (step === 4 && !stripe)}
+                disabled={submitting || (step === 4 && method === "card" && !stripe)}
                 onClick={handleNext}
                 sx={{ height: 48 }}
               >
-                {step < 4 ? "Continue" : submitting ? "Processing payment…" : "Pay & place order"}
+                {step < 4
+                  ? "Continue"
+                  : submitting
+                    ? "Processing…"
+                    : method === "card"
+                      ? "Pay & place order"
+                      : "Continue to Stripe"}
               </Button>
             </Stack>
           </FormProvider>
@@ -446,7 +628,16 @@ function CheckoutInner() {
 
 export default function Checkout() {
   if (!stripePromise) {
-    return <CheckoutInner />;
+    return (
+      <Container maxWidth="sm" sx={{ py: 10, textAlign: "center" }}>
+        <Typography variant="h6" fontWeight={700}>
+          Payments unavailable
+        </Typography>
+        <Typography color="text.secondary" sx={{ mt: 1 }}>
+          Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and restart the app.
+        </Typography>
+      </Container>
+    );
   }
   return (
     <Elements stripe={stripePromise}>

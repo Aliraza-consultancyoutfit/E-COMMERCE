@@ -5,6 +5,9 @@ import type {
   AdminOrdersResponse,
   AdminStats,
   CheckoutArgs,
+  CheckoutSessionArgs,
+  CheckoutSessionResponse,
+  CompleteSessionArgs,
   Order,
   OrderStatus,
   PaymentIntentResponse,
@@ -14,6 +17,13 @@ export const orderApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     createPaymentIntent: builder.mutation<PaymentIntentResponse, void>({
       query: () => ({ url: "/orders/payment-intent", method: "POST" }),
+    }),
+    createCheckoutSession: builder.mutation<CheckoutSessionResponse, CheckoutSessionArgs>({
+      query: (body) => ({ url: "/orders/checkout-session", method: "POST", body }),
+    }),
+    completeSession: builder.mutation<Order, CompleteSessionArgs>({
+      query: (body) => ({ url: "/orders/complete-session", method: "POST", body }),
+      invalidatesTags: ["Cart", "Order", "Product"],
     }),
     checkout: builder.mutation<Order, CheckoutArgs>({
       query: (body) => ({ url: "/orders/checkout", method: "POST", body }),
@@ -54,6 +64,8 @@ export const orderApi = baseApi.injectEndpoints({
 
 export const {
   useCreatePaymentIntentMutation,
+  useCreateCheckoutSessionMutation,
+  useCompleteSessionMutation,
   useCheckoutMutation,
   useGetMyOrdersQuery,
   useGetOrderQuery,
