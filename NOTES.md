@@ -53,4 +53,10 @@
 - Quantity **clamped to stock** on add/update; the hard oversell guard is the atomic decrement at checkout (Module 5).
 - `useAddToCart` auth-gates guests → sign-in. **Proceed-to-checkout** routes to `/checkout` (built in Module 5).
 
+### Module 5 — Checkout & Orders
+- **Design:** `Storefront.dc.html` (Checkout stepper + success/failure).
+- **Mock payment** (assessment allows a clearly-mocked step): card `4242…` succeeds, `4000…` declines → 402 (evaluated before any stock change, so a decline is a no-op). Full card never stored — only last-4.
+- **Atomic guarded stock decrement** with rollback on shortfall (no overselling); order totals **recomputed server-side** from the cart; cart cleared on success.
+- Orders start `pending`; status transitions are Module 8 (admin). Order history/tracking UI is Module 6 — confirmation currently links to home/catalog.
+
 _Seeded credentials (local/dev): `admin@elitecart.com` / `Admin123!`, `customer@elitecart.com` / `Customer123!`._
