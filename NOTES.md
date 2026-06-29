@@ -25,4 +25,11 @@
 - **Seed:** users (admin + customer) now; sample products join the same script in Module 2.
 - **Tests:** no runner yet; introduced in the first feature module per the project's own convention. Foundation verified via live integration checks.
 
+### Module 1 — Auth
+- **Design:** `Authentication.dc.html` (split brand + form layout).
+- **Scope:** built functional **Sign In + Sign Up** (email/password). **Social login + Forgot/Reset/Verify/OTP** screens from the design are out of scope (need OAuth + email backends not in the assessment).
+- Added optional **`name`** to the user model for sign-up; account module can split into first/last later.
+- **Remember-me** kept visually; cookie TTL is the real control.
+- Noted: `POST /auth/login` returns `201` (Nest default) — semantically `200`, left for polish.
+
 _Seeded credentials (local/dev): `admin@elitecart.com` / `Admin123!`, `customer@elitecart.com` / `Customer123!`._

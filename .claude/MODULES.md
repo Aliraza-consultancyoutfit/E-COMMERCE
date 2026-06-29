@@ -8,7 +8,7 @@ The order follows the spec's suggested checklist: foundation → auth → storef
 | # | Module | Scope (BE + FE) | Depends on | Status | Shipped commit |
 |---|--------|-----------------|------------|--------|----------------|
 | 0 | **Foundation** | DB connection (done), shared response/error filter, `RolesGuard` + `@Roles()`, FE Redux `store/` + API/token layer + route guards + route constants, **seed script** (admin + customer + sample products) | — | ✅ shipped | `feature/00-foundation` |
-| 1 | **Auth** | register/login/me (done) → harden: roles in JWT, GuestGuard/(auth) + AuthGuard, sign-in/sign-up UI, session persistence | 0 | ⬜ todo | |
+| 1 | **Auth** | register/login/me (done) → harden: roles in JWT, GuestGuard/(auth) + AuthGuard, sign-in/sign-up UI, session persistence | 0 | 🟡 in-progress (built+verified, awaiting ship) | |
 | 2 | **Product catalog (storefront read)** | Product schema (name, description, price, image, category, stock); list endpoint with **search + category filter + price range + sort (price/newest) + pagination**; storefront catalog page with filters/sort/pagination using shared table/cards | 0,1 | ⬜ todo | |
 | 3 | **Product detail** | get-one endpoint; detail page with full info + quantity selector + add-to-cart | 2 | ⬜ todo | |
 | 4 | **Cart** | Cart schema (per user); add/remove/update qty; **persists across sessions for logged-in user**; line totals + order total computed server-side | 1,3 | ⬜ todo | |
