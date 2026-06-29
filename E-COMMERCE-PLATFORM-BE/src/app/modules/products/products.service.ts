@@ -1,6 +1,6 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { FilterQuery, Model, SortOrder } from "mongoose";
+import { FilterQuery, isValidObjectId, Model, SortOrder } from "mongoose";
 import { ProductQueryDto, ProductSort } from "../../../libs/shared/src/dto";
 import { Product, ProductDocument } from "../../../libs/shared/src/schemas";
 import { escapeRegex } from "../../../libs/shared/src/utils";
@@ -54,6 +54,19 @@ export class ProductsService {
       records,
       meta: { total, page, limit, pages: Math.ceil(total / limit) || 1 },
     };
+  }
+
+  async findById(id: string) {
+    if (!isValidObjectId(id)) {
+      throw new NotFoundException("Product not found");
+    }
+
+    const product = await this.productModel.findById(id).lean().exec();
+    if (!product) {
+      throw new NotFoundException("Product not found");
+    }
+
+    return product;
   }
 
   async getCategories() {

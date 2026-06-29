@@ -1,5 +1,5 @@
-import { Controller, Get, Query } from "@nestjs/common";
-import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { Controller, Get, Param, Query } from "@nestjs/common";
+import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { ProductQueryDto } from "../../../libs/shared/src/dto";
 import { ProductsService } from "./products.service";
 
@@ -21,5 +21,12 @@ export class ProductsController {
   @ApiOkResponse({ description: "Distinct product categories with counts." })
   getCategories() {
     return this.productsService.getCategories();
+  }
+
+  @Get(":id")
+  @ApiOkResponse({ description: "Public single product by id." })
+  @ApiNotFoundResponse({ description: "Product not found." })
+  findOne(@Param("id") id: string) {
+    return this.productsService.findById(id);
   }
 }
