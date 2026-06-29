@@ -129,6 +129,13 @@ const NAV_ITEMS: {
       />
     ),
   },
+  {
+    label: "Activity logs",
+    href: PATHS.admin.logs,
+    icon: () => (
+      <Svg paths={["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z", "M14 2v6h6", "M16 13H8M16 17H8M10 9H8"]} />
+    ),
+  },
 ];
 
 const initialsOf = (value?: string) =>
@@ -146,6 +153,7 @@ const titleFromPath = (pathname: string) => {
   if (pathname.startsWith(PATHS.admin.reports)) return "Reports";
   if (pathname.startsWith(PATHS.admin.users)) return "Users & admins";
   if (pathname.startsWith(PATHS.admin.settings)) return "Settings";
+  if (pathname.startsWith(PATHS.admin.logs)) return "Activity logs";
   return "Dashboard";
 };
 

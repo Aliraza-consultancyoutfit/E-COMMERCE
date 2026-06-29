@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
+import { ActivityModule } from "./modules/activity/activity.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { CartModule } from "./modules/cart/cart.module";
 import { HealthModule } from "./modules/health/health.module";
@@ -28,6 +29,7 @@ import { UsersModule } from "./modules/users/users.module";
     CartModule,
     OrdersModule,
     SettingsModule,
+    ActivityModule,
   ],
 })
 export class AppModule {}

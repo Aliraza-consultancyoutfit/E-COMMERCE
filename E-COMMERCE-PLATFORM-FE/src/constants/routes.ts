@@ -33,6 +33,7 @@ export const PATHS = {
     reports: "/admin/reports",
     users: "/admin/users",
     settings: "/admin/settings",
+    logs: "/admin/logs",
   },
 } as const;
 
