@@ -23,6 +23,7 @@ import { ShoppingCartIcon } from "@/assets/icons/common";
 import ThemeSwitch from "@/components/theme-switch";
 import { PATHS } from "@/constants/routes";
 import { logout } from "@/store/auth/auth.slice";
+import { useGetProfileQuery } from "@/store/auth/auth.api";
 import { useGetCartQuery } from "@/store/cart/cart.api";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { removeToken } from "@/utils/auth-token";
@@ -38,6 +39,7 @@ export default function StorefrontNavbar() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const { data: cart } = useGetCartQuery(undefined, { skip: !user });
+  const { data: profile } = useGetProfileQuery(undefined, { skip: !user });
   const cartCount = cart?.summary.itemCount ?? 0;
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [search, setSearch] = useState("");
@@ -157,6 +159,7 @@ export default function StorefrontNavbar() {
             {user ? (
               <>
                 <Avatar
+                  src={profile?.avatar || undefined}
                   onClick={(event: MouseEvent<HTMLElement>) =>
                     setAnchorEl(event.currentTarget)
                   }

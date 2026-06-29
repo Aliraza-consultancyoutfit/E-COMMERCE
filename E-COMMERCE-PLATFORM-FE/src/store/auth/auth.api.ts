@@ -23,7 +23,7 @@ export const authApi = baseApi.injectEndpoints({
       query: () => ({ url: "/auth/profile" }),
       providesTags: ["User"],
     }),
-    updateProfile: builder.mutation<Profile, { name: string }>({
+    updateProfile: builder.mutation<Profile, { name?: string; avatar?: string }>({
       query: (body) => ({ url: "/auth/profile", method: "PATCH", body }),
       invalidatesTags: ["User"],
     }),

@@ -12,7 +12,7 @@
 
 ### Frontend
 - **`/account`** (`AuthGuard`) — dashboard with sidebar (avatar + name/email, **Profile / Orders / Sign out**).
-- **Profile** — editable full name + read-only email; saves via `updateProfile` with a toast.
+- **Profile** — editable full name + read-only email; **profile picture** upload (change/remove) — resized client-side to a 256px square JPEG and stored as a base64 data URL on the user document; shown in the profile, account sidebar, and navbar avatar.
 - **Orders** — order-history list (order #, date, item count, **status chip**, total, View) with an empty state.
 - **Order detail** — **status timeline** (Order placed → Processing → Shipped → Delivered, derived from `status`; cancelled shown explicitly), shipping address, payment (last-4), and the item lines.
 - Activates the navbar avatar's **"My account"**.
