@@ -197,7 +197,7 @@ export default function Cart() {
                   onClick={() => handleRemove(line.product._id)}
                   sx={{ color: "text.secondary", "&:hover": { color: "error.main" } }}
                 >
-                  <CrossIcon width="18" height="18" />
+                  <CrossIcon width="18" height="18" stroke="currentColor" />
                 </IconButton>
               </Stack>
             ))}
