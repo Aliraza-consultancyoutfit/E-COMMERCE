@@ -29,7 +29,13 @@ export default function AuthBrandPanel() {
         background: `linear-gradient(150deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main} 45%, ${theme.palette.primary.light})`,
       }}
     >
-      <Stack direction="row" spacing={1.5} alignItems="center">
+      <Stack
+        direction="row"
+        spacing={1.5}
+        alignItems="center"
+        onClick={() => window.location.assign("/")}
+        sx={{ mb: 1, cursor: "pointer" }}
+      >
         <Box
           sx={{
             width: 36,
