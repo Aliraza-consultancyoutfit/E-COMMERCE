@@ -58,8 +58,11 @@ export class Order {
 
   @Prop({ default: "" }) coupon: string;
 
-  /** Last 4 digits of the (mock) card used — never the full number. */
+  /** Last 4 digits of the card used — never the full number. */
   @Prop({ default: "" }) paymentLast4: string;
+
+  /** Stripe PaymentIntent id — bound to the order so it can't be reused. */
+  @Prop({ default: "", index: true }) paymentIntentId: string;
 
   @Prop({ enum: OrderStatus, default: OrderStatus.Pending, index: true })
   status: OrderStatus;

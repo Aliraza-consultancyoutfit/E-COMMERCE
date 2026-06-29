@@ -5,8 +5,10 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { InjectModel } from "@nestjs/mongoose";
 import { isValidObjectId, Model, Types } from "mongoose";
+import Stripe from "stripe";
 import {
   AdminOrderQueryDto,
   CheckoutDto,
@@ -20,9 +22,6 @@ import {
 } from "../../../libs/shared/src/schemas";
 import { CartService } from "../cart/cart.service";
 
-/** Mock gateway: cards starting 4000 decline (Stripe-style test decline). */
-const DECLINE_PREFIX = "4000";
-
 /** Allowed forward status transitions; everything else is rejected. */
 const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.Pending]: [OrderStatus.Processing, OrderStatus.Cancelled],
@@ -34,12 +33,32 @@ const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 
 @Injectable()
 export class OrdersService {
+  private readonly stripe: Stripe;
+
   constructor(
     @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
     private readonly cartService: CartService,
-  ) {}
+    private readonly config: ConfigService,
+  ) {
+    this.stripe = new Stripe(this.config.getOrThrow<string>("STRIPE_SECRET_KEY"));
+  }
+
+  /** Create a Stripe PaymentIntent for the server-computed cart total. */
+  async createPaymentIntent(userId: string) {
+    const cart = await this.cartService.getMyCart(userId);
+    if (cart.items.length === 0) {
+      throw new BadRequestException("Your cart is empty");
+    }
+    const intent = await this.stripe.paymentIntents.create({
+      amount: Math.round(cart.summary.total * 100),
+      currency: "usd",
+      payment_method_types: ["card"],
+      metadata: { userId },
+    });
+    return { clientSecret: intent.client_secret, amount: cart.summary.total };
+  }
 
   async checkout(userId: string, dto: CheckoutDto) {
     const cart = await this.cartService.getMyCart(userId);
@@ -47,14 +66,35 @@ export class OrdersService {
       throw new BadRequestException("Your cart is empty");
     }
 
-    // Mock payment — evaluated before any stock change so a decline is a no-op.
-    const cardDigits = dto.payment.cardNumber.replace(/\D/g, "");
-    if (cardDigits.startsWith(DECLINE_PREFIX)) {
+    // Verify the Stripe payment succeeded for this user + this exact amount
+    // before touching stock. A failed/declined intent is a no-op.
+    const intent = await this.stripe.paymentIntents.retrieve(dto.paymentIntentId, {
+      expand: ["latest_charge"],
+    });
+    if (intent.metadata?.userId !== userId) {
+      throw new BadRequestException("Payment does not belong to this account");
+    }
+    if (intent.status !== "succeeded") {
       throw new HttpException(
-        "Payment was declined. No charge was made.",
+        "Payment was not completed. No charge was made.",
         HttpStatus.PAYMENT_REQUIRED,
       );
     }
+    if (
+      intent.amount_received !== Math.round(cart.summary.total * 100) ||
+      intent.currency !== "usd"
+    ) {
+      throw new BadRequestException("Payment amount does not match the cart");
+    }
+    const alreadyUsed = await this.orderModel.exists({
+      paymentIntentId: dto.paymentIntentId,
+    });
+    if (alreadyUsed) {
+      throw new BadRequestException("This payment was already used for an order");
+    }
+    const last4 =
+      (intent.latest_charge as Stripe.Charge | null)?.payment_method_details
+        ?.card?.last4 ?? "••••";
 
     // Atomic, guarded stock decrement with rollback on any shortfall.
     const decremented: { id: Types.ObjectId; quantity: number }[] = [];
@@ -98,7 +138,8 @@ export class OrdersService {
       tax: cart.summary.tax,
       total: cart.summary.total,
       coupon: cart.coupon,
-      paymentLast4: cardDigits.slice(-4),
+      paymentLast4: last4,
+      paymentIntentId: dto.paymentIntentId,
       status: OrderStatus.Pending,
     });
 

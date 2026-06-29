@@ -36,10 +36,18 @@ interface JwtUser {
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  @Post("payment-intent")
+  @ApiCreatedResponse({
+    description: "Create a Stripe PaymentIntent for the user's cart total.",
+  })
+  createPaymentIntent(@CurrentUser() user: JwtUser) {
+    return this.ordersService.createPaymentIntent(user.sub);
+  }
+
   @Post("checkout")
   @ApiCreatedResponse({
     description:
-      "Create an order from the user's cart after a mock payment. 402 if declined.",
+      "Create an order from the user's cart after confirming the Stripe payment. 402 if not completed.",
   })
   checkout(@CurrentUser() user: JwtUser, @Body() dto: CheckoutDto) {
     return this.ordersService.checkout(user.sub, dto);

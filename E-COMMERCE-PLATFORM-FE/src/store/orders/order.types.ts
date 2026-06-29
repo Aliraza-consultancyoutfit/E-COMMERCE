@@ -72,10 +72,10 @@ export interface AdminStats {
 
 export interface CheckoutArgs {
   shippingAddress: ShippingAddress;
-  payment: {
-    cardNumber: string;
-    expiry: string;
-    cvc: string;
-    nameOnCard: string;
-  };
+  paymentIntentId: string;
+}
+
+export interface PaymentIntentResponse {
+  clientSecret: string;
+  amount: number;
 }

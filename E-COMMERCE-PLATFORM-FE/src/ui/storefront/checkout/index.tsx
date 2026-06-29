@@ -14,23 +14,33 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
+import {
+  CardElement,
+  Elements,
+  useElements,
+  useStripe,
+} from "@stripe/react-stripe-js";
 import { CrossIcon, TickIcon } from "@/assets/icons/common";
 import FormProvider from "@/components/react-hook-form/form-provider";
 import RHFTextField from "@/components/react-hook-form/rhf-text-field";
 import RHFCheckbox from "@/components/react-hook-form/rhf-checkbox";
 import { PATHS } from "@/constants/routes";
 import { useGetCartQuery } from "@/store/cart/cart.api";
-import { useCheckoutMutation } from "@/store/orders/order.api";
+import {
+  useCheckoutMutation,
+  useCreatePaymentIntentMutation,
+} from "@/store/orders/order.api";
 import type { Order } from "@/store/orders/order.types";
 import { getApiErrorMessage } from "@/utils/api-error";
 import { formatCurrency } from "@/utils/format";
+import { stripePromise } from "@/utils/stripe";
 
 const STEPS = ["Shipping", "Billing", "Payment", "Review"];
 const STEP_FIELDS: Record<number, (keyof CheckoutValues)[]> = {
   1: ["firstName", "lastName", "street", "city", "zip"],
   2: ["sameAsShipping"],
-  3: ["cardNumber", "expiry", "cvc", "nameOnCard"],
+  3: ["nameOnCard"],
   4: [],
 };
 
@@ -41,14 +51,6 @@ const schema = yup.object({
   city: yup.string().trim().required("City is required"),
   zip: yup.string().trim().required("ZIP code is required"),
   sameAsShipping: yup.boolean().default(true),
-  cardNumber: yup
-    .string()
-    .required("Card number is required")
-    .test("len", "Enter a valid card number", (v) =>
-      Boolean(v && v.replace(/\D/g, "").length >= 12),
-    ),
-  expiry: yup.string().trim().required("Expiry is required"),
-  cvc: yup.string().trim().min(3, "Invalid CVC").required("CVC is required"),
   nameOnCard: yup.string().trim().required("Name on card is required"),
 });
 
@@ -78,11 +80,7 @@ function Stepper({ step }: { step: number }) {
                   fontSize: 14,
                   flexShrink: 0,
                   color: done || active ? "primary.contrastText" : "text.secondary",
-                  bgcolor: done
-                    ? "success.main"
-                    : active
-                      ? "primary.main"
-                      : "background.default",
+                  bgcolor: done ? "success.main" : active ? "primary.main" : "background.default",
                   border: done || active ? "none" : 1,
                   borderColor: "divider",
                 }}
@@ -92,24 +90,13 @@ function Stepper({ step }: { step: number }) {
               <Typography
                 variant="body2"
                 fontWeight={600}
-                sx={{
-                  whiteSpace: "nowrap",
-                  display: { xs: "none", sm: "block" },
-                  color: position <= step ? "text.primary" : "text.secondary",
-                }}
+                sx={{ whiteSpace: "nowrap", display: { xs: "none", sm: "block" }, color: position <= step ? "text.primary" : "text.secondary" }}
               >
                 {label}
               </Typography>
             </Stack>
             {index < STEPS.length - 1 && (
-              <Box
-                sx={{
-                  flex: 1,
-                  height: 2,
-                  mx: 1.75,
-                  bgcolor: position < step ? "success.main" : "divider",
-                }}
-              />
+              <Box sx={{ flex: 1, height: 2, mx: 1.75, bgcolor: position < step ? "success.main" : "divider" }} />
             )}
           </Stack>
         );
@@ -118,14 +105,20 @@ function Stepper({ step }: { step: number }) {
   );
 }
 
-export default function Checkout() {
+function CheckoutInner() {
   const router = useRouter();
+  const theme = useTheme();
+  const stripe = useStripe();
+  const elements = useElements();
   const { data: cart, isLoading: cartLoading } = useGetCartQuery();
-  const [checkout, { isLoading: placing }] = useCheckoutMutation();
+  const [createPaymentIntent] = useCreatePaymentIntentMutation();
+  const [checkout] = useCheckoutMutation();
 
   const [step, setStep] = useState(1);
   const [view, setView] = useState<View>("steps");
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
+  const [cardComplete, setCardComplete] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const methods = useForm<CheckoutValues>({
     resolver: yupResolver(schema),
@@ -136,15 +129,40 @@ export default function Checkout() {
       city: "",
       zip: "",
       sameAsShipping: true,
-      cardNumber: "",
-      expiry: "",
-      cvc: "",
       nameOnCard: "",
     },
   });
 
+  const cardOptions = {
+    style: {
+      base: {
+        color: theme.palette.text.primary,
+        fontFamily: "inherit",
+        fontSize: "16px",
+        "::placeholder": { color: theme.palette.text.secondary },
+      },
+      invalid: { color: theme.palette.error.main },
+    },
+  };
+
   const placeOrder = methods.handleSubmit(async (values) => {
+    const card = elements?.getElement(CardElement);
+    if (!stripe || !card) {
+      toast.error("Payment is still loading. Please try again.");
+      return;
+    }
+    setSubmitting(true);
     try {
+      const { clientSecret } = await createPaymentIntent().unwrap();
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: { card, billing_details: { name: values.nameOnCard } },
+      });
+
+      if (result.error || result.paymentIntent?.status !== "succeeded") {
+        setView("failure");
+        return;
+      }
+
       const order = await checkout({
         shippingAddress: {
           firstName: values.firstName,
@@ -153,12 +171,7 @@ export default function Checkout() {
           city: values.city,
           zip: values.zip,
         },
-        payment: {
-          cardNumber: values.cardNumber,
-          expiry: values.expiry,
-          cvc: values.cvc,
-          nameOnCard: values.nameOnCard,
-        },
+        paymentIntentId: result.paymentIntent.id,
       }).unwrap();
       setPlacedOrder(order);
       setView("success");
@@ -169,12 +182,18 @@ export default function Checkout() {
       } else {
         toast.error(getApiErrorMessage(error));
       }
+    } finally {
+      setSubmitting(false);
     }
   });
 
   const handleNext = async () => {
     if (step < 4) {
       const valid = await methods.trigger(STEP_FIELDS[step]);
+      if (step === 3 && !cardComplete) {
+        toast.error("Enter your card details");
+        return;
+      }
       if (valid) {
         setStep((prev) => prev + 1);
       }
@@ -187,20 +206,7 @@ export default function Checkout() {
   if (view === "success" && placedOrder) {
     return (
       <Container maxWidth="sm" sx={{ py: 8, textAlign: "center" }}>
-        <Box
-          sx={{
-            width: 80,
-            height: 80,
-            borderRadius: "50%",
-            mx: "auto",
-            mb: 3,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "success.main",
-            bgcolor: (theme) => alpha(theme.palette.success.main, 0.14),
-          }}
-        >
+        <Box sx={{ width: 80, height: 80, borderRadius: "50%", mx: "auto", mb: 3, display: "flex", alignItems: "center", justifyContent: "center", color: "success.main", bgcolor: (t) => alpha(t.palette.success.main, 0.14) }}>
           <TickIcon width="40" height="40" stroke="currentColor" />
         </Box>
         <Typography variant="h4" fontWeight={700}>
@@ -213,11 +219,7 @@ export default function Checkout() {
           </Box>{" "}
           has been placed. A receipt has been emailed to you.
         </Typography>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          sx={{ p: 2, border: 1, borderColor: "divider", borderRadius: 3, mb: 3, textAlign: "left" }}
-        >
+        <Stack direction="row" justifyContent="space-between" sx={{ p: 2, border: 1, borderColor: "divider", borderRadius: 3, mb: 3, textAlign: "left" }}>
           <Box>
             <Typography variant="body2" color="text.secondary">
               Estimated delivery
@@ -247,20 +249,7 @@ export default function Checkout() {
   if (view === "failure") {
     return (
       <Container maxWidth="sm" sx={{ py: 8, textAlign: "center" }}>
-        <Box
-          sx={{
-            width: 80,
-            height: 80,
-            borderRadius: "50%",
-            mx: "auto",
-            mb: 3,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "error.main",
-            bgcolor: (theme) => alpha(theme.palette.error.main, 0.12),
-          }}
-        >
+        <Box sx={{ width: 80, height: 80, borderRadius: "50%", mx: "auto", mb: 3, display: "flex", alignItems: "center", justifyContent: "center", color: "error.main", bgcolor: (t) => alpha(t.palette.error.main, 0.12) }}>
           <CrossIcon width="38" height="38" stroke="currentColor" />
         </Box>
         <Typography variant="h4" fontWeight={700}>
@@ -274,16 +263,7 @@ export default function Checkout() {
           <Button fullWidth variant="outlined" size="large" onClick={() => router.push(PATHS.cart)} sx={{ height: 48 }}>
             Back to cart
           </Button>
-          <Button
-            fullWidth
-            variant="contained"
-            size="large"
-            onClick={() => {
-              setStep(3);
-              setView("steps");
-            }}
-            sx={{ height: 48 }}
-          >
+          <Button fullWidth variant="contained" size="large" onClick={() => { setStep(3); setView("steps"); }} sx={{ height: 48 }}>
             Try again
           </Button>
         </Stack>
@@ -311,14 +291,7 @@ export default function Checkout() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Stepper step={step} />
-      <Box
-        sx={{
-          display: "grid",
-          gap: 3.5,
-          alignItems: "start",
-          gridTemplateColumns: { xs: "1fr", md: "1fr 360px" },
-        }}
-      >
+      <Box sx={{ display: "grid", gap: 3.5, alignItems: "start", gridTemplateColumns: { xs: "1fr", md: "1fr 360px" } }}>
         <Box sx={{ border: 1, borderColor: "divider", borderRadius: 4, p: 3.5 }}>
           <FormProvider methods={methods} onSubmit={placeOrder}>
             {step === 1 && (
@@ -343,16 +316,7 @@ export default function Checkout() {
                 <Typography variant="h6" fontWeight={700} sx={{ mb: 2.5 }}>
                   Billing address
                 </Typography>
-                <Box
-                  sx={{
-                    p: 2,
-                    border: 1,
-                    borderColor: "primary.main",
-                    borderRadius: 3,
-                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                    mb: 2,
-                  }}
-                >
+                <Box sx={{ p: 2, border: 1, borderColor: "primary.main", borderRadius: 3, bgcolor: (t) => alpha(t.palette.primary.main, 0.08), mb: 2 }}>
                   <RHFCheckbox name="sameAsShipping" label="Same as shipping address" />
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
@@ -369,19 +333,33 @@ export default function Checkout() {
                     Payment
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Mock payment — no real charge
+                    Secured by Stripe · test mode
                   </Typography>
                 </Stack>
                 <Stack spacing={2}>
-                  <RHFTextField name="cardNumber" label="Card number" placeholder="4242 4242 4242 4242" />
-                  <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-                    <RHFTextField name="expiry" label="Expiry" placeholder="08 / 28" />
-                    <RHFTextField name="cvc" label="CVC" placeholder="123" />
-                  </Box>
                   <RHFTextField name="nameOnCard" label="Name on card" placeholder="Jane Cooper" />
+                  <Box>
+                    <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
+                      Card details
+                    </Typography>
+                    <Box
+                      sx={{
+                        px: 1.75,
+                        py: 1.75,
+                        border: 1,
+                        borderColor: "divider",
+                        borderRadius: 3,
+                        bgcolor: "background.paper",
+                        "&:focus-within": { borderColor: "primary.main", boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.18)}` },
+                      }}
+                    >
+                      <CardElement options={cardOptions} onChange={(e) => setCardComplete(e.complete)} />
+                    </Box>
+                  </Box>
                 </Stack>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
-                  Use <b>4242…</b> to succeed or <b>4000…</b> to simulate a decline.
+                  Test card <b>4242 4242 4242 4242</b>, any future expiry, any CVC. Use{" "}
+                  <b>4000 0000 0000 0002</b> to simulate a decline.
                 </Typography>
               </Box>
             )}
@@ -406,7 +384,7 @@ export default function Checkout() {
                       Payment
                     </Typography>
                     <Typography variant="body2">
-                      Card ending {methods.getValues("cardNumber").replace(/\D/g, "").slice(-4) || "••••"}
+                      {methods.getValues("nameOnCard")} · secured by Stripe
                     </Typography>
                   </Box>
                 </Stack>
@@ -415,12 +393,7 @@ export default function Checkout() {
 
             <Stack direction="row" spacing={1.5} sx={{ mt: 3.5 }}>
               {step > 1 && (
-                <Button
-                  variant="outlined"
-                  size="large"
-                  onClick={() => setStep((prev) => prev - 1)}
-                  sx={{ height: 48 }}
-                >
+                <Button variant="outlined" size="large" onClick={() => setStep((prev) => prev - 1)} sx={{ height: 48 }}>
                   Back
                 </Button>
               )}
@@ -429,70 +402,55 @@ export default function Checkout() {
                 variant="contained"
                 size="large"
                 fullWidth
-                disabled={placing}
+                disabled={submitting || (step === 4 && !stripe)}
                 onClick={handleNext}
                 sx={{ height: 48 }}
               >
-                {step < 4 ? "Continue" : placing ? "Placing order…" : "Place order"}
+                {step < 4 ? "Continue" : submitting ? "Processing payment…" : "Pay & place order"}
               </Button>
             </Stack>
           </FormProvider>
         </Box>
 
-        {/* Summary */}
-        <Box sx={{ border: 1, borderColor: "divider", borderRadius: 4, p: 2.75 }}>
+        {/* Order summary */}
+        <Box sx={{ border: 1, borderColor: "divider", borderRadius: 4, p: 3 }}>
           <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
             Order summary
           </Typography>
-          <Stack spacing={1.5} sx={{ mb: 1.5 }}>
-            {cart?.items.map((line) => (
-              <Stack key={line.product._id} direction="row" justifyContent="space-between" spacing={1}>
-                <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }} noWrap>
-                  {line.product.name}{" "}
-                  <Box component="span" color="text.secondary">
-                    × {line.quantity}
-                  </Box>
-                </Typography>
-                <Typography variant="body2" fontWeight={600}>
-                  {formatCurrency(line.lineTotal)}
-                </Typography>
-              </Stack>
-            ))}
-          </Stack>
-          <Divider sx={{ my: 1.5 }} />
           {cart && (
-            <>
-              <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
+            <Stack spacing={1.25}>
+              <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" color="text.secondary">Subtotal</Typography>
                 <Typography variant="body2" fontWeight={600}>{formatCurrency(cart.summary.subtotal)}</Typography>
               </Stack>
-              {cart.summary.discount > 0 && (
-                <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
-                  <Typography variant="body2" color="success.main">Discount</Typography>
-                  <Typography variant="body2" fontWeight={600} color="success.main">
-                    -{formatCurrency(cart.summary.discount)}
-                  </Typography>
-                </Stack>
-              )}
-              <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
+              <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" color="text.secondary">Shipping</Typography>
-                <Typography variant="body2" fontWeight={600}>
-                  {cart.summary.shipping === 0 ? "Free" : formatCurrency(cart.summary.shipping)}
-                </Typography>
+                <Typography variant="body2" fontWeight={600}>{cart.summary.shipping === 0 ? "Free" : formatCurrency(cart.summary.shipping)}</Typography>
               </Stack>
-              <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
+              <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" color="text.secondary">Tax</Typography>
                 <Typography variant="body2" fontWeight={600}>{formatCurrency(cart.summary.tax)}</Typography>
               </Stack>
-              <Divider sx={{ my: 1.5 }} />
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Divider sx={{ my: 1 }} />
+              <Stack direction="row" justifyContent="space-between">
                 <Typography fontWeight={700}>Total</Typography>
-                <Typography variant="h5" fontWeight={700}>{formatCurrency(cart.summary.total)}</Typography>
+                <Typography fontWeight={700}>{formatCurrency(cart.summary.total)}</Typography>
               </Stack>
-            </>
+            </Stack>
           )}
         </Box>
       </Box>
     </Container>
+  );
+}
+
+export default function Checkout() {
+  if (!stripePromise) {
+    return <CheckoutInner />;
+  }
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutInner />
+    </Elements>
   );
 }

@@ -7,10 +7,14 @@ import type {
   CheckoutArgs,
   Order,
   OrderStatus,
+  PaymentIntentResponse,
 } from "./order.types";
 
 export const orderApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    createPaymentIntent: builder.mutation<PaymentIntentResponse, void>({
+      query: () => ({ url: "/orders/payment-intent", method: "POST" }),
+    }),
     checkout: builder.mutation<Order, CheckoutArgs>({
       query: (body) => ({ url: "/orders/checkout", method: "POST", body }),
       // Product/category stock changes after a purchase, so refresh those too.
@@ -49,6 +53,7 @@ export const orderApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useCreatePaymentIntentMutation,
   useCheckoutMutation,
   useGetMyOrdersQuery,
   useGetOrderQuery,
