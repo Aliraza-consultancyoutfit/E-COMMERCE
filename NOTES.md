@@ -65,4 +65,10 @@
 - **Scope:** order history + profile (the graded core). Design's **Addresses/Wishlist/Notifications/Settings** omitted — no backend in the assessment (not dead UI). Profile uses single `name`; email read-only.
 - Order status is read-only here; transitions are admin (Module 8).
 
+### Module 7 — Admin product management
+- **Design:** `Admin.dc.html` (sidebar, products table, product form, delete dialog).
+- Admin-only product CRUD (`POST/PATCH/DELETE /products`) via `RolesGuard` + `@Roles(ADMIN)`; server-enforced (403 for customers), `(admin)` RoleGuard mirrors it for UX.
+- Admin shell (sidebar + drawer), products table (search/pagination/status/edit/delete + confirm dialog), product form (create/edit, RHF+yup).
+- **Image via URL field** (no file storage); design uploader simplified. Sidebar Customers/Reports/Users/Settings/Activity omitted (out of scope).
+
 _Seeded credentials (local/dev): `admin@elitecart.com` / `Admin123!`, `customer@elitecart.com` / `Customer123!`._
