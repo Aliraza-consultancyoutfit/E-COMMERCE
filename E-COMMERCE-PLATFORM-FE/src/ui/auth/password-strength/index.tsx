@@ -40,11 +40,11 @@ export default function PasswordStrength({ password }: { password: string }) {
         ))}
       </Stack>
       <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="subtitle1" color="text.secondary">
           Password strength
         </Typography>
         <Typography
-          variant="caption"
+          variant="subtitle1"
           fontWeight={600}
           sx={{ color: score ? level.color : "text.secondary" }}
         >
@@ -55,13 +55,13 @@ export default function PasswordStrength({ password }: { password: string }) {
         {RULES.map((rule, index) => (
           <Stack key={rule.label} direction="row" spacing={0.75} alignItems="center">
             <Typography
-              variant="caption"
+              variant="subtitle1"
               sx={{ color: met[index] ? "success.main" : "text.secondary" }}
             >
               {met[index] ? "✓" : "○"}
             </Typography>
             <Typography
-              variant="caption"
+              variant="subtitle1"
               sx={{ color: met[index] ? "text.primary" : "text.secondary" }}
             >
               {rule.label}
