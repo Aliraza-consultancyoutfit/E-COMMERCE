@@ -39,3 +39,4 @@ export { default as StarIcon } from "./star-icon";
 export { default as ShieldIcon } from "./shield-icon";
 export { default as PlusIcon } from "./plus-icon";
 export { default as AppleIcon } from "./apple-icon";
+export { default as MinusIcon } from "./minus-icon";

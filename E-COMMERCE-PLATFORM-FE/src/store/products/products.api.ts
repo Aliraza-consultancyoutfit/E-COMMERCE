@@ -1,5 +1,6 @@
 import { baseApi } from "@/store/base-api";
 import type {
+  Product,
   ProductCategory,
   ProductListResponse,
   ProductQueryParams,
@@ -11,6 +12,10 @@ export const productApi = baseApi.injectEndpoints({
       query: (params) => ({ url: "/products", params }),
       providesTags: ["Product"],
     }),
+    getProduct: builder.query<Product, string>({
+      query: (id) => ({ url: `/products/${id}` }),
+      providesTags: (_result, _error, id) => [{ type: "Product", id }],
+    }),
     getCategories: builder.query<ProductCategory[], void>({
       query: () => ({ url: "/products/categories" }),
       providesTags: ["Product"],
@@ -19,4 +24,8 @@ export const productApi = baseApi.injectEndpoints({
   overrideExisting: false,
 });
 
-export const { useGetProductsQuery, useGetCategoriesQuery } = productApi;
+export const {
+  useGetProductsQuery,
+  useGetProductQuery,
+  useGetCategoriesQuery,
+} = productApi;
