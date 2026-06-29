@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
 import { AuthModule } from "./modules/auth/auth.module";
+import { CartModule } from "./modules/cart/cart.module";
 import { HealthModule } from "./modules/health/health.module";
 import { ProductsModule } from "./modules/products/products.module";
 import { UsersModule } from "./modules/users/users.module";
@@ -22,6 +23,7 @@ import { UsersModule } from "./modules/users/users.module";
     UsersModule,
     AuthModule,
     ProductsModule,
+    CartModule,
   ],
 })
 export class AppModule {}
