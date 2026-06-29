@@ -17,6 +17,7 @@ import {
   useUpdateProductMutation,
 } from "@/store/products/products.api";
 import { getApiErrorMessage } from "@/utils/api-error";
+import { fileToProductImageDataUrl } from "@/utils/image";
 
 const schema = yup.object({
   name: yup.string().trim().required("Product name is required"),
@@ -55,8 +56,6 @@ const SectionCard = ({ title, children }: { title: string; children: React.React
   </Box>
 );
 
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
-
 const UploadGlyph = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
@@ -72,20 +71,13 @@ function ImageUpload({ value, onChange }: { value: string; onChange: (next: stri
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  const readFile = (file?: File) => {
+  const readFile = async (file?: File) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please choose an image file");
-      return;
+    try {
+      onChange(await fileToProductImageDataUrl(file));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not read that image");
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      toast.error("Image must be under 2MB");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => onChange(String(reader.result));
-    reader.onerror = () => toast.error("Could not read that image");
-    reader.readAsDataURL(file);
   };
 
   const hiddenInput = (
@@ -95,7 +87,7 @@ function ImageUpload({ value, onChange }: { value: string; onChange: (next: stri
       accept="image/*"
       hidden
       onChange={(e) => {
-        readFile(e.target.files?.[0]);
+        void readFile(e.target.files?.[0]);
         e.target.value = "";
       }}
     />
@@ -143,7 +135,7 @@ function ImageUpload({ value, onChange }: { value: string; onChange: (next: stri
       onDrop={(e) => {
         e.preventDefault();
         setDragOver(false);
-        readFile(e.dataTransfer.files?.[0]);
+        void readFile(e.dataTransfer.files?.[0]);
       }}
       sx={{
         border: "1.5px dashed",
@@ -167,7 +159,7 @@ function ImageUpload({ value, onChange }: { value: string; onChange: (next: stri
         </Box>
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-        PNG or JPG, up to 2MB
+        PNG or JPG, up to 5MB
       </Typography>
       {hiddenInput}
     </Box>
