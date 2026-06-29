@@ -8,6 +8,10 @@ export const orderApi = baseApi.injectEndpoints({
       // Product/category stock changes after a purchase, so refresh those too.
       invalidatesTags: ["Cart", "Order", "Product"],
     }),
+    getMyOrders: builder.query<Order[], void>({
+      query: () => ({ url: "/orders" }),
+      providesTags: ["Order"],
+    }),
     getOrder: builder.query<Order, string>({
       query: (id) => ({ url: `/orders/${id}` }),
       providesTags: (_result, _error, id) => [{ type: "Order", id }],
@@ -16,4 +20,8 @@ export const orderApi = baseApi.injectEndpoints({
   overrideExisting: false,
 });
 
-export const { useCheckoutMutation, useGetOrderQuery } = orderApi;
+export const {
+  useCheckoutMutation,
+  useGetMyOrdersQuery,
+  useGetOrderQuery,
+} = orderApi;

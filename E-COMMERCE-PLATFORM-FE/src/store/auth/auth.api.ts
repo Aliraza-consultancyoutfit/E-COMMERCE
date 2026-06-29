@@ -3,6 +3,7 @@ import type {
   AuthResponse,
   JwtPayload,
   LoginPayload,
+  Profile,
   RegisterPayload,
 } from "./auth.types";
 
@@ -18,8 +19,22 @@ export const authApi = baseApi.injectEndpoints({
       query: () => ({ url: "/auth/me" }),
       providesTags: ["User"],
     }),
+    getProfile: builder.query<Profile, void>({
+      query: () => ({ url: "/auth/profile" }),
+      providesTags: ["User"],
+    }),
+    updateProfile: builder.mutation<Profile, { name: string }>({
+      query: (body) => ({ url: "/auth/profile", method: "PATCH", body }),
+      invalidatesTags: ["User"],
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useLoginMutation, useRegisterMutation, useGetMeQuery } = authApi;
+export const {
+  useLoginMutation,
+  useRegisterMutation,
+  useGetMeQuery,
+  useGetProfileQuery,
+  useUpdateProfileMutation,
+} = authApi;
