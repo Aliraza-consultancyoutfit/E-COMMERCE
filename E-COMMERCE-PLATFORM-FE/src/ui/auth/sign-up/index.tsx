@@ -17,6 +17,7 @@ import FormProvider from "@/components/react-hook-form/form-provider";
 import RHFTextField from "@/components/react-hook-form/rhf-text-field";
 import RHFPasswordField from "@/components/react-hook-form/rhf-password-field";
 import RHFCheckbox from "@/components/react-hook-form/rhf-checkbox";
+import PasswordStrength from "@/ui/auth/password-strength";
 import { PATHS } from "@/constants/routes";
 import { useRegisterMutation } from "@/store/auth/auth.api";
 import { getApiErrorMessage } from "@/utils/api-error";
@@ -40,13 +41,6 @@ const schema = yup.object({
 });
 
 type SignUpValues = yup.InferType<typeof schema>;
-
-const PASSWORD_RULES = [
-  { label: "At least 8 characters", test: (v: string) => v.length >= 8 },
-  { label: "One uppercase letter", test: (v: string) => /[A-Z]/.test(v) },
-  { label: "One number", test: (v: string) => /\d/.test(v) },
-  { label: "One symbol", test: (v: string) => /[^A-Za-z0-9]/.test(v) },
-];
 
 export default function SignUp() {
   const [register, { isLoading }] = useRegisterMutation();
@@ -107,26 +101,7 @@ export default function SignUp() {
             placeholder="Create a password"
           />
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-              gap: 0.5,
-            }}
-          >
-            {PASSWORD_RULES.map((rule) => {
-              const met = rule.test(password);
-              return (
-                <Typography
-                  key={rule.label}
-                  variant="caption"
-                  color={met ? "success.main" : "text.secondary"}
-                >
-                  {met ? "✓" : "•"} {rule.label}
-                </Typography>
-              );
-            })}
-          </Box>
+          <PasswordStrength password={password} />
 
           <RHFPasswordField
             name="confirm"
