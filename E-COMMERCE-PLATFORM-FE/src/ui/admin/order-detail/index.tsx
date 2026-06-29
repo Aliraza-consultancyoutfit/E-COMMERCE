@@ -119,26 +119,23 @@ export default function AdminOrderDetail({ orderId }: { orderId: string }) {
         </Typography>
         <OrderStatusChip status={order.status} />
         <Typography variant="body2" color="text.secondary">
-          {formatOrderDate(order.createdAt)}
+          {`${formatOrderDate(order.createdAt)} · ${new Date(order.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
         </Typography>
         <Stack direction="row" spacing={1} sx={{ ml: "auto" }}>
-          {nextOptions.length === 0 ? (
-            <Typography variant="body2" color="text.secondary" sx={{ alignSelf: "center" }}>
-              No further actions
-            </Typography>
-          ) : (
-            nextOptions.map((next) => (
-              <Button
-                key={next}
-                variant={next === "cancelled" ? "outlined" : "contained"}
-                color={next === "cancelled" ? "error" : "primary"}
-                disabled={updating}
-                onClick={() => changeStatus(next)}
-              >
-                {next === "cancelled" ? "Cancel order" : `Mark as ${STATUS_META[next].label}`}
-              </Button>
-            ))
-          )}
+          <Button variant="outlined" color="inherit" sx={{ borderColor: "divider" }} onClick={() => window.print()}>
+            Print
+          </Button>
+          {nextOptions.map((next) => (
+            <Button
+              key={next}
+              variant={next === "cancelled" ? "outlined" : "contained"}
+              color={next === "cancelled" ? "error" : "primary"}
+              disabled={updating}
+              onClick={() => changeStatus(next)}
+            >
+              {next === "cancelled" ? "Cancel order" : `Mark as ${STATUS_META[next].label}`}
+            </Button>
+          ))}
         </Stack>
       </Stack>
 
@@ -159,9 +156,18 @@ export default function AdminOrderDetail({ orderId }: { orderId: string }) {
             Items
           </Typography>
           {order.items.map((item) => (
-            <Stack key={item.product} direction="row" justifyContent="space-between" sx={{ p: 2.25, borderBottom: 1, borderColor: "divider" }}>
-              <Box>
-                <Typography variant="body2" fontWeight={600}>{item.name}</Typography>
+            <Stack key={item.product} direction="row" alignItems="center" spacing={1.75} sx={{ p: 2.25, borderBottom: 1, borderColor: "divider" }}>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2.5,
+                  flexShrink: 0,
+                  background: (t) => `linear-gradient(135deg, ${alpha(t.palette.primary.main, 0.18)}, ${alpha(t.palette.info.main, 0.18)})`,
+                }}
+              />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="body2" fontWeight={600} noWrap>{item.name}</Typography>
                 <Typography variant="body2" color="text.secondary">
                   Qty {item.quantity} · {formatCurrency(item.price)}
                 </Typography>

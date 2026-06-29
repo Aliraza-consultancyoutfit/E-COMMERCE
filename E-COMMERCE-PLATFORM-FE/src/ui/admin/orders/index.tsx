@@ -154,14 +154,9 @@ export default function AdminOrders() {
                           <Avatar sx={{ width: 28, height: 28, fontSize: 11, fontWeight: 600, color: "primary.main", bgcolor: (t) => alpha(t.palette.primary.main, 0.12) }}>
                             {initialsOf(name)}
                           </Avatar>
-                          <Box sx={{ minWidth: 0 }}>
-                            <Typography variant="body2" fontWeight={600} noWrap>
-                              {name}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" noWrap>
-                              {order.user?.email}
-                            </Typography>
-                          </Box>
+                          <Typography variant="body2" fontWeight={600} noWrap>
+                            {name}
+                          </Typography>
                         </Stack>
                       </TableCell>
                       <TableCell sx={{ color: "text.secondary" }}>{formatOrderDate(order.createdAt)}</TableCell>
