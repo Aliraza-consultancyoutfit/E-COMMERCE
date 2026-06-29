@@ -35,3 +35,5 @@ export { default as ChartIcon } from "./chart-icon";
 export { default as TrendFilledIcon } from "./trend-filled-icon";
 export { default as CalendarIcon } from "./calendar-icon";
 export { default as BillingAddressIcon } from "./billing-address-icon";
+export { default as StarIcon } from "./star-icon";
+export { default as ShieldIcon } from "./shield-icon";
