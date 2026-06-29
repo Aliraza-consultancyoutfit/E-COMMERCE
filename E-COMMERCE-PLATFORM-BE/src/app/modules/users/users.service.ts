@@ -4,7 +4,11 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { CreateUserDto, CustomerQueryDto } from "../../../libs/shared/src/dto";
+import {
+  CreateAdminDto,
+  CreateUserDto,
+  CustomerQueryDto,
+} from "../../../libs/shared/src/dto";
 import {
   Order,
   OrderDocument,
@@ -12,6 +16,7 @@ import {
   UserDocument,
   UserRole,
 } from "../../../libs/shared/src/schemas";
+import { hashValue } from "../../../libs/shared/src/utils";
 import { isValidObjectId, Model, Types } from "mongoose";
 
 interface CustomerOrder {
@@ -113,6 +118,53 @@ export class UsersService {
     return {
       records,
       meta: { total, page, limit, pages: Math.ceil(total / limit) || 1 },
+    };
+  }
+
+  /** Admin: paginated team members (role=admin). */
+  async getAdmins(query: CustomerQueryDto) {
+    const { page, limit, search } = query;
+    const skip = (page - 1) * limit;
+
+    const match: Record<string, unknown> = { role: UserRole.ADMIN };
+    if (search) {
+      match.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const [records, total] = await Promise.all([
+      this.userModel
+        .find(match)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select("name email avatar role createdAt")
+        .lean(),
+      this.userModel.countDocuments(match),
+    ]);
+
+    return {
+      records,
+      meta: { total, page, limit, pages: Math.ceil(total / limit) || 1 },
+    };
+  }
+
+  /** Admin: create another admin account. */
+  async createAdmin(dto: CreateAdminDto) {
+    const password = await hashValue(dto.password);
+    const user = await this.create({
+      name: dto.name,
+      email: dto.email,
+      password,
+      role: UserRole.ADMIN,
+    });
+    return {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
     };
   }
 

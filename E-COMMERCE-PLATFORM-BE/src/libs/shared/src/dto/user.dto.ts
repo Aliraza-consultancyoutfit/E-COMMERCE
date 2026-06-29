@@ -54,6 +54,22 @@ export class CustomerQueryDto {
   search?: string;
 }
 
+export class CreateAdminDto {
+  @ApiPropertyOptional({ example: "Ravi Thomas" })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiProperty({ example: "ravi@company.com" })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ minLength: 8, example: "Password123" })
+  @IsString()
+  @MinLength(8)
+  password: string;
+}
+
 export class UpdateProfileDto {
   @ApiPropertyOptional({ example: "Jane Cooper" })
   @IsOptional()

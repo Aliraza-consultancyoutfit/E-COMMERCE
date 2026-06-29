@@ -31,6 +31,7 @@ export const PATHS = {
     customers: "/admin/customers",
     customer: (id: string) => `/admin/customers/${id}`,
     reports: "/admin/reports",
+    users: "/admin/users",
   },
 } as const;
 

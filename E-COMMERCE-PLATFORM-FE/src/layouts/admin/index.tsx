@@ -104,6 +104,19 @@ const NAV_ITEMS: {
     href: PATHS.admin.reports,
     icon: () => <Svg paths={["M3 3v18h18", "m19 9-5 5-4-4-3 3"]} />,
   },
+  {
+    label: "Users & admins",
+    href: PATHS.admin.users,
+    icon: () => (
+      <Svg
+        paths={[
+          "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",
+          "M9 7a4 4 0 1 0 0 0",
+          "M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",
+        ]}
+      />
+    ),
+  },
 ];
 
 const initialsOf = (value?: string) =>
@@ -119,6 +132,7 @@ const titleFromPath = (pathname: string) => {
   if (pathname.startsWith(PATHS.admin.orders)) return "Orders";
   if (pathname.startsWith(PATHS.admin.customers)) return "Customers";
   if (pathname.startsWith(PATHS.admin.reports)) return "Reports";
+  if (pathname.startsWith(PATHS.admin.users)) return "Users & admins";
   return "Dashboard";
 };
 
