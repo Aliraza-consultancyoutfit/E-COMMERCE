@@ -21,9 +21,13 @@ export const PATHS = {
     signUp: "/auth/sign-up",
   },
 
-  // Admin (built later from Admin.dc.html)
+  // Admin
   admin: {
     root: "/admin",
+    products: "/admin/products",
+    productNew: "/admin/products/new",
+    product: (id: string) => `/admin/products/${id}`,
+    orders: "/admin/orders",
   },
 } as const;
 
