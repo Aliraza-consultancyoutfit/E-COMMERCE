@@ -1,11 +1,13 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import toast from "react-hot-toast";
 import { Box, Button, Skeleton, Stack, Typography } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import FormProvider from "@/components/react-hook-form/form-provider";
 import RHFTextField from "@/components/react-hook-form/rhf-text-field";
 import { PATHS } from "@/constants/routes";
@@ -52,6 +54,125 @@ const SectionCard = ({ title, children }: { title: string; children: React.React
     {children}
   </Box>
 );
+
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+
+const UploadGlyph = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+  </svg>
+);
+
+/**
+ * Image picker that stores the file as a base64 data URL in the form's
+ * `image` string field — no upload endpoint needed (mirrors the avatar flow).
+ * The preview also renders an existing http(s) URL when editing.
+ */
+function ImageUpload({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  const readFile = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error("Image must be under 2MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => onChange(String(reader.result));
+    reader.onerror = () => toast.error("Could not read that image");
+    reader.readAsDataURL(file);
+  };
+
+  const hiddenInput = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept="image/*"
+      hidden
+      onChange={(e) => {
+        readFile(e.target.files?.[0]);
+        e.target.value = "";
+      }}
+    />
+  );
+
+  if (value) {
+    return (
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
+        <Box
+          component="img"
+          src={value}
+          alt="Product preview"
+          sx={{ width: 96, height: 96, borderRadius: 3, objectFit: "cover", border: 1, borderColor: "divider", flexShrink: 0 }}
+        />
+        <Stack direction="row" spacing={1}>
+          <Button variant="outlined" color="inherit" sx={{ borderColor: "divider" }} onClick={() => inputRef.current?.click()}>
+            Replace
+          </Button>
+          <Button variant="outlined" color="error" onClick={() => onChange("")}>
+            Remove
+          </Button>
+        </Stack>
+        {hiddenInput}
+      </Stack>
+    );
+  }
+
+  return (
+    <Box
+      role="button"
+      tabIndex={0}
+      aria-label="Upload product image"
+      onClick={() => inputRef.current?.click()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          inputRef.current?.click();
+        }
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        readFile(e.dataTransfer.files?.[0]);
+      }}
+      sx={{
+        border: "1.5px dashed",
+        borderColor: dragOver ? "primary.main" : "primary.light",
+        borderRadius: 3,
+        p: 3.5,
+        textAlign: "center",
+        cursor: "pointer",
+        outline: "none",
+        bgcolor: (t) => alpha(t.palette.primary.main, dragOver ? 0.12 : 0.05),
+        "&:focus-visible": { borderColor: "primary.main", boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.2)}` },
+      }}
+    >
+      <Box sx={{ display: "inline-flex", width: 44, height: 44, borderRadius: 2.75, bgcolor: "background.paper", alignItems: "center", justifyContent: "center", color: "primary.main", mb: 1.25 }}>
+        <UploadGlyph />
+      </Box>
+      <Typography variant="body2" fontWeight={600}>
+        Drag &amp; drop an image, or{" "}
+        <Box component="span" sx={{ color: "primary.main" }}>
+          browse
+        </Box>
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        PNG or JPG, up to 2MB
+      </Typography>
+      {hiddenInput}
+    </Box>
+  );
+}
 
 export default function ProductForm({ productId }: { productId?: string }) {
   const router = useRouter();
@@ -140,6 +261,13 @@ export default function ProductForm({ productId }: { productId?: string }) {
             </Stack>
           </SectionCard>
 
+          <SectionCard title="Media">
+            <ImageUpload
+              value={methods.watch("image") || ""}
+              onChange={(next) => methods.setValue("image", next, { shouldDirty: true })}
+            />
+          </SectionCard>
+
           <SectionCard title="Pricing & inventory">
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
               <RHFTextField name="price" label="Price ($)" type="number" placeholder="199" />
@@ -149,10 +277,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
           </SectionCard>
 
           <SectionCard title="Organization">
-            <Stack spacing={2}>
-              <RHFTextField name="category" label="Category" placeholder="Audio" />
-              <RHFTextField name="image" label="Image URL" placeholder="https://… (optional)" />
-            </Stack>
+            <RHFTextField name="category" label="Category" placeholder="Audio" />
           </SectionCard>
 
           <Stack direction="row" spacing={1.5} justifyContent="flex-end">
