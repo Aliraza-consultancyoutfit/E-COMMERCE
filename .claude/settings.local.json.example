@@ -1,0 +1,11 @@
+{
+  "_comment": "Copy to settings.local.json (gitignored) for machine-local secrets/config. NEVER commit the real file.",
+  "env": {
+    "FIGMA_TOKEN": "figd_xxx_your_personal_access_token",
+    "FIGMA_FILE_URL": "https://www.figma.com/file/<key>/<name>",
+    "NEXT_PUBLIC_API_BASE_URL": "http://localhost:5000/api"
+  },
+  "permissions": {
+    "allow": []
+  }
+}

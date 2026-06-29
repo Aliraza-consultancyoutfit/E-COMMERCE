@@ -1,0 +1,106 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:fix)",
+      "Bash(npm run build)",
+      "Bash(npm run format)",
+      "Bash(npm run start:dev)",
+      "Bash(npm run dev)",
+      "Bash(npm test)",
+      "Bash(npm run test)",
+      "Bash(npm install*)",
+      "Bash(npm ci)",
+      "Bash(npx jest*)",
+      "Bash(npx vitest*)",
+      "Bash(npx playwright*)",
+      "Bash(npx nest*)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git add*)",
+      "Bash(git checkout*)",
+      "Bash(git stash list)",
+      "Bash(find*)",
+      "Bash(curl -s *)",
+      "Bash(gh pr *)",
+      "Bash(gh api *)",
+      "Edit(/.claude/skills/module-build/**)",
+      "Bash(gh auth *)",
+      "Bash(git --version)",
+      "Bash(powershell.exe -Command \"gh --version\")",
+      "Bash(git config *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(grep -iE \"node_modules|\\\\.env$|/dist/\")",
+      "Bash(git commit -q -m 'feat\\(backend\\): initial NestJS API scaffold \\(auth, users, health, shared libs\\) *)",
+      "Bash(grep -iE \"node_modules|\\\\.env$|/\\\\.next/|/dist/\")",
+      "Bash(git restore *)",
+      "Bash(git commit -q -m 'feat\\(frontend\\): initial Next.js 15 / MUI app scaffold \\(layouts, theme, shared components, auth/dashboard pages\\) *)",
+      "Bash(git commit -q -m 'chore: add root gitignore and .claude agent/skill configuration *)"
+    ],
+    "deny": [
+      "Bash(git push origin main*)",
+      "Bash(git push origin master*)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(rm -rf /*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/block-dangerous-commands.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/protect-files.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/scan-secrets.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/warn-large-files.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/format-on-save.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
