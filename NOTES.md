@@ -59,4 +59,10 @@
 - **Atomic guarded stock decrement** with rollback on shortfall (no overselling); order totals **recomputed server-side** from the cart; cart cleared on success.
 - Orders start `pending`; status transitions are Module 8 (admin). Order history/tracking UI is Module 6 — confirmation currently links to home/catalog.
 
+### Module 6 — Account & Order history
+- **Design:** `Storefront.dc.html` (customer dashboard).
+- `GET /orders` (own only) + `GET/PATCH /auth/profile`. `/account` dashboard: Profile (editable name), Orders list (status chip), Order detail with status timeline.
+- **Scope:** order history + profile (the graded core). Design's **Addresses/Wishlist/Notifications/Settings** omitted — no backend in the assessment (not dead UI). Profile uses single `name`; email read-only.
+- Order status is read-only here; transitions are admin (Module 8).
+
 _Seeded credentials (local/dev): `admin@elitecart.com` / `Admin123!`, `customer@elitecart.com` / `Customer123!`._
