@@ -1,5 +1,5 @@
 import { useFormContext, Controller } from "react-hook-form";
-import { TextField, Typography, useTheme } from "@mui/material";
+import { Box, TextField, Typography, useTheme } from "@mui/material";
 import CustomLabel from "@/components/custom-label";
 import { PALETTE_MODE } from "@/constants/strings";
 import { RHFTextFieldProps } from "./rhf-text-field.interface";
@@ -16,7 +16,7 @@ export default function RHFTextField(props: RHFTextFieldProps) {
       name={name}
       control={control}
       render={({ field, fieldState: { error } }) => (
-        <>
+        <Box>
           {other.label && (
             <CustomLabel label={other.label} required={required} />
           )}
@@ -67,7 +67,7 @@ export default function RHFTextField(props: RHFTextFieldProps) {
             {...other}
             label={""}
           />
-        </>
+        </Box>
       )}
     />
   );
