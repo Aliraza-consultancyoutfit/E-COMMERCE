@@ -3,6 +3,11 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { UserRole } from "../schemas";
 
 export class RegisterDto {
+  @ApiPropertyOptional({ example: "Jane Cooper" })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
   @ApiProperty({ example: "user@example.com" })
   @IsEmail()
   email: string;
