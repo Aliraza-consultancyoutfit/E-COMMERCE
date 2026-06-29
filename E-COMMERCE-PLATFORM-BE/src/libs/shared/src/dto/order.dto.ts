@@ -1,6 +1,16 @@
 import { Type } from "class-transformer";
-import { IsString, MinLength, ValidateNested } from "class-validator";
-import { ApiProperty } from "@nestjs/swagger";
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  MinLength,
+  ValidateNested,
+} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { OrderStatus } from "../schemas";
 
 export class ShippingAddressDto {
   @ApiProperty({ example: "Jane" }) @IsString() @MinLength(1) firstName: string;
@@ -37,4 +47,32 @@ export class CheckoutDto {
   @ValidateNested()
   @Type(() => PaymentDto)
   payment: PaymentDto;
+}
+
+export class UpdateOrderStatusDto {
+  @ApiProperty({ enum: OrderStatus, example: OrderStatus.Processing })
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
+}
+
+export class AdminOrderQueryDto {
+  @ApiPropertyOptional({ example: 1, default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page = 1;
+
+  @ApiPropertyOptional({ example: 10, default: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit = 10;
+
+  @ApiPropertyOptional({ enum: OrderStatus })
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
 }

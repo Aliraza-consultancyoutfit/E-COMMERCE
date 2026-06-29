@@ -7,7 +7,10 @@ import {
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { isValidObjectId, Model, Types } from "mongoose";
-import { CheckoutDto } from "../../../libs/shared/src/dto";
+import {
+  AdminOrderQueryDto,
+  CheckoutDto,
+} from "../../../libs/shared/src/dto";
 import {
   Order,
   OrderDocument,
@@ -19,6 +22,15 @@ import { CartService } from "../cart/cart.service";
 
 /** Mock gateway: cards starting 4000 decline (Stripe-style test decline). */
 const DECLINE_PREFIX = "4000";
+
+/** Allowed forward status transitions; everything else is rejected. */
+const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  [OrderStatus.Pending]: [OrderStatus.Processing, OrderStatus.Cancelled],
+  [OrderStatus.Processing]: [OrderStatus.Shipped, OrderStatus.Cancelled],
+  [OrderStatus.Shipped]: [OrderStatus.Delivered],
+  [OrderStatus.Delivered]: [],
+  [OrderStatus.Cancelled]: [],
+};
 
 @Injectable()
 export class OrdersService {
@@ -101,6 +113,67 @@ export class OrdersService {
       .sort({ createdAt: -1 })
       .lean()
       .exec();
+  }
+
+  async getAllOrders(query: AdminOrderQueryDto) {
+    const { page, limit, status } = query;
+    const filter = status ? { status } : {};
+    const skip = (page - 1) * limit;
+
+    const [records, total] = await Promise.all([
+      this.orderModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("user", "name email")
+        .lean()
+        .exec(),
+      this.orderModel.countDocuments(filter).exec(),
+    ]);
+
+    return {
+      records,
+      meta: { total, page, limit, pages: Math.ceil(total / limit) || 1 },
+    };
+  }
+
+  async getOrderForAdmin(orderId: string) {
+    if (!isValidObjectId(orderId)) {
+      throw new NotFoundException("Order not found");
+    }
+    const order = await this.orderModel
+      .findById(orderId)
+      .populate("user", "name email")
+      .lean()
+      .exec();
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+    return order;
+  }
+
+  async updateStatus(orderId: string, status: OrderStatus) {
+    if (!isValidObjectId(orderId)) {
+      throw new NotFoundException("Order not found");
+    }
+    const order = await this.orderModel.findById(orderId).exec();
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+
+    if (order.status === status) {
+      return order.toObject();
+    }
+    if (!STATUS_TRANSITIONS[order.status].includes(status)) {
+      throw new BadRequestException(
+        `Cannot change status from ${order.status} to ${status}`,
+      );
+    }
+
+    order.status = status;
+    await order.save();
+    return order.toObject();
   }
 
   async getMyOrder(userId: string, orderId: string) {

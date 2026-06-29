@@ -1,12 +1,27 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiTags,
 } from "@nestjs/swagger";
-import { CurrentUser } from "../../../libs/shared/src/decorators";
-import { CheckoutDto } from "../../../libs/shared/src/dto";
+import { CurrentUser, Roles } from "../../../libs/shared/src/decorators";
+import {
+  AdminOrderQueryDto,
+  CheckoutDto,
+  UpdateOrderStatusDto,
+} from "../../../libs/shared/src/dto";
+import { RolesGuard } from "../../../libs/shared/src/guards";
+import { UserRole } from "../../../libs/shared/src/schemas";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { OrdersService } from "./orders.service";
 
@@ -34,6 +49,30 @@ export class OrdersController {
   @ApiOkResponse({ description: "List the current user's orders (newest first)." })
   listMine(@CurrentUser() user: JwtUser) {
     return this.ordersService.listMyOrders(user.sub);
+  }
+
+  @Get("all")
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOkResponse({ description: "List all orders (admin only)." })
+  listAll(@Query() query: AdminOrderQueryDto) {
+    return this.ordersService.getAllOrders(query);
+  }
+
+  @Get("admin/:id")
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOkResponse({ description: "Get any order by id (admin only)." })
+  getForAdmin(@Param("id") id: string) {
+    return this.ordersService.getOrderForAdmin(id);
+  }
+
+  @Patch(":id/status")
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOkResponse({ description: "Update order status (admin only)." })
+  updateStatus(@Param("id") id: string, @Body() dto: UpdateOrderStatusDto) {
+    return this.ordersService.updateStatus(id, dto.status);
   }
 
   @Get(":id")
