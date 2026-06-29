@@ -318,6 +318,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           display: { xs: "none", md: "block" },
           position: "sticky",
           top: 0,
+          alignSelf: "flex-start",
           height: "100vh",
         }}
       >
