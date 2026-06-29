@@ -306,8 +306,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const name = profile?.name || profile?.email?.split("@")[0] || "Admin";
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
-      {/* Desktop sidebar */}
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: "background.default" }}>
+      {/* Desktop sidebar — full height, never scrolls with the page */}
       <Box
         sx={{
           width: SIDEBAR_WIDTH,
@@ -316,10 +316,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           borderColor: "divider",
           bgcolor: "background.paper",
           display: { xs: "none", md: "block" },
-          position: "sticky",
-          top: 0,
-          alignSelf: "flex-start",
           height: "100vh",
+          overflowY: "auto",
         }}
       >
         <SidebarContent />
@@ -332,12 +330,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </Box>
       </Drawer>
 
-      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <Box sx={{ flex: 1, minWidth: 0, height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <AppBar
-          position="sticky"
+          position="static"
           elevation={0}
           color="default"
-          sx={{ bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}
+          sx={{ flexShrink: 0, bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}
         >
           <Toolbar sx={{ gap: 1.5 }}>
             <IconButton
@@ -419,7 +417,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </Avatar>
           </Toolbar>
         </AppBar>
-        <Box component="main" sx={{ flex: 1, p: { xs: 2, md: 3.5 } }}>
+        <Box component="main" sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: { xs: 2, md: 3.5 } }}>
           {children}
         </Box>
       </Box>
