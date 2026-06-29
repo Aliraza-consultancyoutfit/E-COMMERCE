@@ -147,9 +147,10 @@ export default function StorefrontNavbar() {
               component={NextLink}
               href={PATHS.cart}
               aria-label="Cart"
+              sx={{ color: "text.primary" }}
             >
               <Badge badgeContent={cartCount} color="primary" overlap="circular">
-                <ShoppingCartIcon width="22" height="22" />
+                <ShoppingCartIcon width="22" height="22" stroke="currentColor" />
               </Badge>
             </IconButton>
 

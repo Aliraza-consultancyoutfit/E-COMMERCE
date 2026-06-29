@@ -125,7 +125,7 @@ export default function Cart() {
               borderColor: "divider",
             }}
           >
-            <ShoppingCartIcon width="38" height="38" />
+            <ShoppingCartIcon width="38" height="38" stroke="currentColor" />
           </Box>
           <Typography variant="h5" fontWeight={700}>
             Your cart is empty
