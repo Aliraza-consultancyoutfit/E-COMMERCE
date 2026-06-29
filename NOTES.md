@@ -40,4 +40,10 @@
 - **Routing:** public storefront lives in a `(storefront)` route group with navbar+footer shell; replaced the placeholder root `page.tsx`.
 - **Env:** `next build` needs free RAM — local dev servers (a 1.2 GB FE dev) can starve it; reclaim orphaned node processes first.
 
+### Module 3 — Product detail
+- **Design:** `Storefront.dc.html` (Product detail).
+- `GET /products/:id` (public); invalid/missing → 404. `/product/[id]` page with gallery, qty stepper, Description/Specs/Reviews tabs, related products.
+- **Add to cart / Buy now auth-gate now**; real server-cart mutation lands in Module 4.
+- **Specs/Reviews** derived from real fields + aggregate rating (no fabricated reviews); **wishlist heart** deferred to Module 6.
+
 _Seeded credentials (local/dev): `admin@elitecart.com` / `Admin123!`, `customer@elitecart.com` / `Customer123!`._
