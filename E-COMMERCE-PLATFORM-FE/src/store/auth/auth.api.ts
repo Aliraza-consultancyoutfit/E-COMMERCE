@@ -1,10 +1,13 @@
 import { baseApi } from "@/store/base-api";
 import type {
   AuthResponse,
+  ChangePasswordPayload,
+  ChangePasswordResponse,
   JwtPayload,
   LoginPayload,
   Profile,
   RegisterPayload,
+  UpdateProfilePayload,
 } from "./auth.types";
 
 export const authApi = baseApi.injectEndpoints({
@@ -23,9 +26,12 @@ export const authApi = baseApi.injectEndpoints({
       query: () => ({ url: "/auth/profile" }),
       providesTags: ["User"],
     }),
-    updateProfile: builder.mutation<Profile, { name?: string; avatar?: string }>({
+    updateProfile: builder.mutation<Profile, UpdateProfilePayload>({
       query: (body) => ({ url: "/auth/profile", method: "PATCH", body }),
       invalidatesTags: ["User"],
+    }),
+    changePassword: builder.mutation<ChangePasswordResponse, ChangePasswordPayload>({
+      query: (body) => ({ url: "/auth/password", method: "PATCH", body }),
     }),
   }),
   overrideExisting: false,
@@ -37,4 +43,5 @@ export const {
   useGetMeQuery,
   useGetProfileQuery,
   useUpdateProfileMutation,
+  useChangePasswordMutation,
 } = authApi;

@@ -24,6 +24,8 @@ import {
 import ApiErrorState from "@/components/api-error-state";
 import NoData from "@/components/no-data";
 import ProductCard from "@/ui/storefront/product-card";
+import HeartIcon from "@/ui/storefront/product-card/heart-icon";
+import { useWishlistToggle } from "@/ui/storefront/product-card/use-wishlist-toggle";
 import QuantityStepper from "@/ui/storefront/quantity-stepper";
 import {
   CategoryGlyph,
@@ -48,6 +50,7 @@ const FEATURES = [
 export default function ProductDetail({ id }: { id: string }) {
   const router = useRouter();
   const { add, isLoading: isAdding } = useAddToCart();
+  const { toggle, isWishlisted, isBusy: isWishlistBusy } = useWishlistToggle();
   const { data: product, isLoading, isError, refetch } =
     useGetProductQuery(id);
 
@@ -109,6 +112,7 @@ export default function ProductDetail({ id }: { id: string }) {
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
     : 0;
   const inStock = product.stock > 0;
+  const wishlisted = isWishlisted(product._id);
   const related = (relatedData?.records ?? [])
     .filter((item) => item._id !== product._id)
     .slice(0, 4);
@@ -305,6 +309,29 @@ export default function ProductDetail({ id }: { id: string }) {
               sx={{ height: 52 }}
             >
               Buy now
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              disabled={isWishlistBusy}
+              aria-label={
+                wishlisted ? "Remove from wishlist" : "Add to wishlist"
+              }
+              aria-pressed={wishlisted}
+              onClick={() => toggle(product._id)}
+              startIcon={<HeartIcon filled={wishlisted} width="19" height="19" />}
+              sx={{
+                height: 52,
+                minWidth: 52,
+                flexShrink: 0,
+                color: wishlisted ? "error.main" : "text.primary",
+                borderColor: wishlisted ? "error.main" : "divider",
+                "& .MuiButton-startIcon": { mr: { xs: 1, sm: 0 } },
+              }}
+            >
+              <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+                {wishlisted ? "In wishlist" : "Wishlist"}
+              </Box>
             </Button>
           </Stack>
 

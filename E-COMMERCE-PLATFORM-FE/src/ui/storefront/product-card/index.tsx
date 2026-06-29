@@ -5,6 +5,8 @@ import { Box, Card, Chip, IconButton, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { PlusIcon, StarIcon } from "@/assets/icons/common";
 import { CategoryGlyph, categoryGradient } from "@/ui/storefront/category-visuals";
+import HeartIcon from "@/ui/storefront/product-card/heart-icon";
+import { useWishlistToggle } from "@/ui/storefront/product-card/use-wishlist-toggle";
 import { formatCurrency } from "@/utils/format";
 import type { Product } from "@/store/products/products.types";
 
@@ -13,6 +15,8 @@ interface ProductCardProps {
   onOpen?: () => void;
   onQuickAdd?: () => void;
   showStockBadge?: boolean;
+  /** Hide the wishlist heart (e.g. inside the wishlist panel itself). */
+  hideWishlist?: boolean;
 }
 
 export default function ProductCard({
@@ -20,14 +24,22 @@ export default function ProductCard({
   onOpen,
   onQuickAdd,
   showStockBadge = false,
+  hideWishlist = false,
 }: ProductCardProps) {
+  const { toggle, isWishlisted, isBusy } = useWishlistToggle();
   const hasDiscount = product.oldPrice > product.price;
   const outOfStock = product.stock === 0;
   const lowStock = product.stock > 0 && product.stock <= 5;
+  const wishlisted = isWishlisted(product._id);
 
   const handleQuickAdd = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     onQuickAdd?.();
+  };
+
+  const handleWishlist = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    toggle(product._id);
   };
 
   return (
@@ -64,6 +76,32 @@ export default function ProductCard({
             color: "primary.main",
           }}
         />
+        {!hideWishlist && (
+          <IconButton
+            onClick={handleWishlist}
+            disabled={isBusy}
+            aria-label={
+              wishlisted
+                ? `Remove ${product.name} from wishlist`
+                : `Add ${product.name} to wishlist`
+            }
+            aria-pressed={wishlisted}
+            size="small"
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              bgcolor: "background.paper",
+              color: wishlisted ? "error.main" : "text.secondary",
+              "&:hover": {
+                bgcolor: "background.paper",
+                color: "error.main",
+              },
+            }}
+          >
+            <HeartIcon filled={wishlisted} width="18" height="18" />
+          </IconButton>
+        )}
         {showStockBadge && (outOfStock || lowStock) && (
           <Chip
             label={outOfStock ? "Out of stock" : "Low stock"}

@@ -53,6 +53,9 @@ export const TAG_TYPES = [
   "Order",
   "User",
   "Recommendation",
+  "Wishlist",
+  "Address",
+  "Notification",
 ] as const;
 
 /** The single RTK Query API. Feature slices extend it via injectEndpoints. */
