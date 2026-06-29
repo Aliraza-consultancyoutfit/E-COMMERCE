@@ -33,4 +33,9 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @ApiPropertyOptional({ description: "Base64 data URL, or empty string to remove" })
+  @IsOptional()
+  @IsString()
+  avatar?: string;
 }

@@ -45,10 +45,11 @@ export class UsersService {
       name: user.name,
       email: user.email,
       role: user.role,
+      avatar: user.avatar,
     };
   }
 
-  async updateProfile(id: string, update: { name?: string }) {
+  async updateProfile(id: string, update: { name?: string; avatar?: string }) {
     await this.userModel
       .findByIdAndUpdate(id, update, { new: true, runValidators: true })
       .exec();

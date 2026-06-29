@@ -19,6 +19,10 @@ export class User {
 
   @Prop({ enum: UserRole, default: UserRole.USER })
   role: UserRole;
+
+  /** Profile picture as a base64 data URL (small, resized client-side). */
+  @Prop({ default: "" })
+  avatar: string;
 }
 
 export type UserDocument = HydratedDocument<User>;
