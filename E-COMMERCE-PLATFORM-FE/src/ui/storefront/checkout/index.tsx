@@ -208,11 +208,11 @@ function CheckoutInner() {
   const payWithCard = methods.handleSubmit(async (values) => {
     const cardNumber = elements?.getElement(CardNumberElement);
     if (!stripe || !cardNumber) {
-      // Stripe.js didn't load (commonly an ad-blocker) — switch to the hosted
-      // Checkout method, which doesn't depend on the in-page Stripe iframe.
+      // Stripe.js didn't load (commonly an ad-blocker). Fall back to hosted
+      // Checkout, which doesn't depend on the in-page Stripe iframe.
       setMethod("stripe");
-      setStep(3);
-      toast.error("Card form couldn't load — use Stripe Checkout to continue.");
+      toast("Card form couldn't load — sending you to Stripe Checkout…");
+      await payWithStripe();
       return;
     }
     if (!values.nameOnCard) {
@@ -297,13 +297,20 @@ function CheckoutInner() {
     }
   };
 
-  // ----- Completing hosted session -----
-  if (completingSession) {
+  // ----- Processing / completing payment (Stripe loader) -----
+  if (completingSession || submitting) {
     return (
-      <Container maxWidth="sm" sx={{ py: 10, textAlign: "center" }}>
-        <CircularProgress />
+      <Container maxWidth="sm" sx={{ py: 12, textAlign: "center" }}>
+        <CircularProgress size={48} />
         <Typography variant="h6" fontWeight={700} sx={{ mt: 3 }}>
-          Confirming your payment…
+          {completingSession
+            ? "Confirming your payment…"
+            : method === "stripe"
+              ? "Redirecting to Stripe…"
+              : "Processing payment…"}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          Please don&apos;t close this window.
         </Typography>
       </Container>
     );
