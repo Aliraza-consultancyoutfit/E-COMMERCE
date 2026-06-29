@@ -5,10 +5,11 @@ import {
   IsOptional,
   IsString,
   Min,
+  MinLength,
   Max,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
 
 export const PRODUCT_SORTS = [
   "price_asc",
@@ -64,3 +65,61 @@ export class ProductQueryDto {
   @IsEnum(PRODUCT_SORTS)
   sort?: ProductSort;
 }
+
+export class CreateProductDto {
+  @ApiProperty({ example: "Aero Wireless Headphones" })
+  @IsString()
+  @MinLength(1)
+  name: string;
+
+  @ApiPropertyOptional({ example: "Adaptive noise cancellation, 40h battery." })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiProperty({ example: 199 })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  price: number;
+
+  @ApiPropertyOptional({ example: 249, description: "Pre-discount price" })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  oldPrice?: number;
+
+  @ApiPropertyOptional({ example: "https://…/headphones.jpg" })
+  @IsOptional()
+  @IsString()
+  image?: string;
+
+  @ApiProperty({ example: "Audio" })
+  @IsString()
+  @MinLength(1)
+  category: string;
+
+  @ApiProperty({ example: 128 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  stock: number;
+
+  @ApiPropertyOptional({ example: 4.8 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(5)
+  rating?: number;
+
+  @ApiPropertyOptional({ example: 212 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  reviews?: number;
+}
+
+export class UpdateProductDto extends PartialType(CreateProductDto) {}

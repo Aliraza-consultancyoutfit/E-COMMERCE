@@ -1,7 +1,12 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { FilterQuery, isValidObjectId, Model, SortOrder } from "mongoose";
-import { ProductQueryDto, ProductSort } from "../../../libs/shared/src/dto";
+import {
+  CreateProductDto,
+  ProductQueryDto,
+  ProductSort,
+  UpdateProductDto,
+} from "../../../libs/shared/src/dto";
 import { Product, ProductDocument } from "../../../libs/shared/src/schemas";
 import { escapeRegex } from "../../../libs/shared/src/utils";
 
@@ -67,6 +72,35 @@ export class ProductsService {
     }
 
     return product;
+  }
+
+  async create(dto: CreateProductDto) {
+    return this.productModel.create(dto);
+  }
+
+  async update(id: string, dto: UpdateProductDto) {
+    if (!isValidObjectId(id)) {
+      throw new NotFoundException("Product not found");
+    }
+    const updated = await this.productModel
+      .findByIdAndUpdate(id, dto, { new: true, runValidators: true })
+      .lean()
+      .exec();
+    if (!updated) {
+      throw new NotFoundException("Product not found");
+    }
+    return updated;
+  }
+
+  async remove(id: string) {
+    if (!isValidObjectId(id)) {
+      throw new NotFoundException("Product not found");
+    }
+    const deleted = await this.productModel.findByIdAndDelete(id).lean().exec();
+    if (!deleted) {
+      throw new NotFoundException("Product not found");
+    }
+    return { id, deleted: true };
   }
 
   async getCategories() {

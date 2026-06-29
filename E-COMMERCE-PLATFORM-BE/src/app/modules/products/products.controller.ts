@@ -1,6 +1,29 @@
-import { Controller, Get, Param, Query } from "@nestjs/common";
-import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
-import { ProductQueryDto } from "../../../libs/shared/src/dto";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+import {
+  ApiBearerAuth,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiTags,
+} from "@nestjs/swagger";
+import { Roles } from "../../../libs/shared/src/decorators";
+import {
+  CreateProductDto,
+  ProductQueryDto,
+  UpdateProductDto,
+} from "../../../libs/shared/src/dto";
+import { RolesGuard } from "../../../libs/shared/src/guards";
+import { UserRole } from "../../../libs/shared/src/schemas";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { ProductsService } from "./products.service";
 
 @ApiTags("Products")
@@ -28,5 +51,32 @@ export class ProductsController {
   @ApiNotFoundResponse({ description: "Product not found." })
   findOne(@Param("id") id: string) {
     return this.productsService.findById(id);
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Create a product (admin only)." })
+  create(@Body() dto: CreateProductDto) {
+    return this.productsService.create(dto);
+  }
+
+  @Patch(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Update a product (admin only)." })
+  update(@Param("id") id: string, @Body() dto: UpdateProductDto) {
+    return this.productsService.update(id, dto);
+  }
+
+  @Delete(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Delete a product (admin only)." })
+  remove(@Param("id") id: string) {
+    return this.productsService.remove(id);
   }
 }
