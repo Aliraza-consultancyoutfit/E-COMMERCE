@@ -10,6 +10,22 @@ export const PATHS = {
   catalog: "/catalog",
   product: (id: string) => `/product/${id}`,
 
+  // Storefront content + system states
+  content: {
+    about: "/about",
+    contact: "/contact",
+    help: "/help",
+    careers: "/careers",
+    press: "/press",
+    sustainability: "/sustainability",
+    shipping: "/shipping",
+    returns: "/returns",
+    privacy: "/privacy",
+    terms: "/terms",
+    cookies: "/cookies",
+  },
+  accessDenied: "/access-denied",
+
   // Authenticated customer
   cart: "/cart",
   checkout: "/checkout",
