@@ -28,6 +28,8 @@ export const PATHS = {
     productNew: "/admin/products/new",
     product: (id: string) => `/admin/products/${id}`,
     orders: "/admin/orders",
+    customers: "/admin/customers",
+    customer: (id: string) => `/admin/customers/${id}`,
   },
 } as const;
 

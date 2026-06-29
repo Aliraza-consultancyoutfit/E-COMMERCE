@@ -86,6 +86,19 @@ const NAV_ITEMS: {
       />
     ),
   },
+  {
+    label: "Customers",
+    href: PATHS.admin.customers,
+    icon: () => (
+      <Svg
+        paths={[
+          "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2",
+          "M9 7a4 4 0 1 0 0 0",
+          "M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",
+        ]}
+      />
+    ),
+  },
 ];
 
 const initialsOf = (value?: string) =>
@@ -99,6 +112,7 @@ const initialsOf = (value?: string) =>
 const titleFromPath = (pathname: string) => {
   if (pathname.startsWith(PATHS.admin.products)) return "Products";
   if (pathname.startsWith(PATHS.admin.orders)) return "Orders";
+  if (pathname.startsWith(PATHS.admin.customers)) return "Customers";
   return "Dashboard";
 };
 
