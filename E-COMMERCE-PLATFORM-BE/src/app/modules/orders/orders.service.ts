@@ -95,6 +95,14 @@ export class OrdersService {
     return order.toObject();
   }
 
+  async listMyOrders(userId: string) {
+    return this.orderModel
+      .find({ user: new Types.ObjectId(userId) })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+  }
+
   async getMyOrder(userId: string, orderId: string) {
     if (!isValidObjectId(orderId)) {
       throw new NotFoundException("Order not found");

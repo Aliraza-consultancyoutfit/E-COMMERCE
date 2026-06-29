@@ -1,14 +1,28 @@
-import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Patch, Post, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../../../libs/shared/src/decorators";
-import { LoginDto, RegisterDto } from "../../../libs/shared/src/dto";
+import {
+  LoginDto,
+  RegisterDto,
+  UpdateProfileDto,
+} from "../../../libs/shared/src/dto";
+import { UsersService } from "../users/users.service";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { AuthService } from "./auth.service";
+
+interface JwtUser {
+  sub: string;
+  email: string;
+  role: string;
+}
 
 @ApiTags("Auth")
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Post("register")
   @ApiOkResponse({ description: "Register a new user and return a JWT." })
@@ -26,7 +40,23 @@ export class AuthController {
   @Get("me")
   @ApiBearerAuth()
   @ApiOkResponse({ description: "Return current JWT payload." })
-  me(@CurrentUser() user: { sub: string; email: string; role: string }) {
+  me(@CurrentUser() user: JwtUser) {
     return user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get("profile")
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Current user's profile (no password)." })
+  getProfile(@CurrentUser() user: JwtUser) {
+    return this.usersService.getProfile(user.sub);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch("profile")
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Update the current user's profile." })
+  updateProfile(@CurrentUser() user: JwtUser, @Body() dto: UpdateProfileDto) {
+    return this.usersService.updateProfile(user.sub, dto);
   }
 }

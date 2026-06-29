@@ -27,3 +27,10 @@ export class CreateUserDto {
   @IsEnum(UserRole)
   role: UserRole;
 }
+
+export class UpdateProfileDto {
+  @ApiPropertyOptional({ example: "Jane Cooper" })
+  @IsOptional()
+  @IsString()
+  name?: string;
+}

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiTags,
 } from "@nestjs/swagger";
 import { CurrentUser } from "../../../libs/shared/src/decorators";
@@ -27,6 +28,12 @@ export class OrdersController {
   })
   checkout(@CurrentUser() user: JwtUser, @Body() dto: CheckoutDto) {
     return this.ordersService.checkout(user.sub, dto);
+  }
+
+  @Get()
+  @ApiOkResponse({ description: "List the current user's orders (newest first)." })
+  listMine(@CurrentUser() user: JwtUser) {
+    return this.ordersService.listMyOrders(user.sub);
   }
 
   @Get(":id")
