@@ -59,6 +59,14 @@ export class OrdersController {
     return this.ordersService.getAllOrders(query);
   }
 
+  @Get("stats")
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOkResponse({ description: "Dashboard analytics (admin only)." })
+  getStats() {
+    return this.ordersService.getStats();
+  }
+
   @Get("admin/:id")
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)

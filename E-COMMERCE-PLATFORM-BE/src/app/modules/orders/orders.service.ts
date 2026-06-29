@@ -138,6 +138,129 @@ export class OrdersService {
     };
   }
 
+  async getStats() {
+    const [facet] = await this.orderModel.aggregate([
+      {
+        $facet: {
+          totals: [
+            {
+              $group: {
+                _id: null,
+                revenue: { $sum: "$total" },
+                orders: { $sum: 1 },
+              },
+            },
+          ],
+          statusCounts: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
+          monthly: [
+            {
+              $group: {
+                _id: {
+                  y: { $year: "$createdAt" },
+                  m: { $month: "$createdAt" },
+                },
+                revenue: { $sum: "$total" },
+              },
+            },
+            { $sort: { "_id.y": 1, "_id.m": 1 } },
+            { $limit: 12 },
+          ],
+          categoryMix: [
+            { $unwind: "$items" },
+            {
+              $lookup: {
+                from: "products",
+                localField: "items.product",
+                foreignField: "_id",
+                as: "product",
+              },
+            },
+            { $unwind: "$product" },
+            {
+              $group: {
+                _id: "$product.category",
+                revenue: { $sum: "$items.lineTotal" },
+              },
+            },
+            { $sort: { revenue: -1 } },
+          ],
+          topProducts: [
+            { $unwind: "$items" },
+            {
+              $group: {
+                _id: "$items.name",
+                units: { $sum: "$items.quantity" },
+                revenue: { $sum: "$items.lineTotal" },
+              },
+            },
+            { $sort: { units: -1 } },
+            { $limit: 4 },
+          ],
+        },
+      },
+    ]);
+
+    const totals = facet?.totals?.[0] ?? { revenue: 0, orders: 0 };
+    const statusCounts = Object.fromEntries(
+      Object.values(OrderStatus).map((s) => [s, 0]),
+    ) as Record<OrderStatus, number>;
+    for (const row of facet?.statusCounts ?? []) {
+      statusCounts[row._id as OrderStatus] = row.count;
+    }
+
+    const MONTH_LABELS = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    const monthly = (facet?.monthly ?? []).map(
+      (row: { _id: { m: number }; revenue: number }) => ({
+        label: MONTH_LABELS[row._id.m - 1],
+        revenue: row.revenue,
+      }),
+    );
+
+    const mixTotal =
+      (facet?.categoryMix ?? []).reduce(
+        (sum: number, row: { revenue: number }) => sum + row.revenue,
+        0,
+      ) || 1;
+    const categoryMix = (facet?.categoryMix ?? [])
+      .slice(0, 5)
+      .map((row: { _id: string; revenue: number }) => ({
+        category: row._id,
+        revenue: row.revenue,
+        pct: Math.round((row.revenue / mixTotal) * 100),
+      }));
+
+    const topProducts = (facet?.topProducts ?? []).map(
+      (row: { _id: string; units: number; revenue: number }) => ({
+        name: row._id,
+        units: row.units,
+        revenue: row.revenue,
+      }),
+    );
+
+    const lowStock = await this.productModel
+      .find()
+      .sort({ stock: 1 })
+      .limit(4)
+      .select("name stock category")
+      .lean()
+      .exec();
+
+    return {
+      totalRevenue: totals.revenue,
+      totalOrders: totals.orders,
+      avgOrderValue: totals.orders ? totals.revenue / totals.orders : 0,
+      pendingCount: statusCounts[OrderStatus.Pending],
+      statusCounts,
+      monthly,
+      categoryMix,
+      topProducts,
+      lowStock,
+    };
+  }
+
   async getOrderForAdmin(orderId: string) {
     if (!isValidObjectId(orderId)) {
       throw new NotFoundException("Order not found");

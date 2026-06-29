@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
-import { PATHS } from "@/constants/routes";
+import AdminDashboard from "@/ui/admin/dashboard";
 
 export default function Page() {
-  redirect(PATHS.admin.products);
+  return <AdminDashboard />;
 }

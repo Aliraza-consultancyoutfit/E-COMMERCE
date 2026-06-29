@@ -36,6 +36,40 @@ export interface Order {
   createdAt: string;
 }
 
+export interface AdminOrderUser {
+  _id: string;
+  name?: string;
+  email: string;
+}
+
+export interface AdminOrder extends Omit<Order, "shippingAddress"> {
+  user: AdminOrderUser;
+  shippingAddress: ShippingAddress;
+}
+
+export interface AdminOrdersResponse {
+  records: AdminOrder[];
+  meta: { total: number; page: number; limit: number; pages: number };
+}
+
+export interface AdminOrderQuery {
+  page?: number;
+  limit?: number;
+  status?: OrderStatus;
+}
+
+export interface AdminStats {
+  totalRevenue: number;
+  totalOrders: number;
+  avgOrderValue: number;
+  pendingCount: number;
+  statusCounts: Record<OrderStatus, number>;
+  monthly: { label: string; revenue: number }[];
+  categoryMix: { category: string; revenue: number; pct: number }[];
+  topProducts: { name: string; units: number; revenue: number }[];
+  lowStock: { _id: string; name: string; stock: number; category: string }[];
+}
+
 export interface CheckoutArgs {
   shippingAddress: ShippingAddress;
   payment: {
