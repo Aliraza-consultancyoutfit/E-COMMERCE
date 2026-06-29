@@ -18,6 +18,8 @@ import { CurrentUser, Roles } from "../../../libs/shared/src/decorators";
 import {
   AdminOrderQueryDto,
   CheckoutDto,
+  CheckoutSessionDto,
+  CompleteSessionDto,
   UpdateOrderStatusDto,
 } from "../../../libs/shared/src/dto";
 import { RolesGuard } from "../../../libs/shared/src/guards";
@@ -51,6 +53,25 @@ export class OrdersController {
   })
   checkout(@CurrentUser() user: JwtUser, @Body() dto: CheckoutDto) {
     return this.ordersService.checkout(user.sub, dto);
+  }
+
+  @Post("checkout-session")
+  @ApiCreatedResponse({
+    description: "Create a Stripe-hosted Checkout session; returns its URL.",
+  })
+  createCheckoutSession(
+    @CurrentUser() user: JwtUser,
+    @Body() dto: CheckoutSessionDto,
+  ) {
+    return this.ordersService.createCheckoutSession(user.sub, dto.shippingAddress);
+  }
+
+  @Post("complete-session")
+  @ApiCreatedResponse({
+    description: "Finalize an order from a paid Stripe Checkout session.",
+  })
+  completeSession(@CurrentUser() user: JwtUser, @Body() dto: CompleteSessionDto) {
+    return this.ordersService.completeCheckoutSession(user.sub, dto.sessionId);
   }
 
   @Get()

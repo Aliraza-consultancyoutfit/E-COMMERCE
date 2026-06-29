@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -12,8 +13,10 @@ import Stripe from "stripe";
 import {
   AdminOrderQueryDto,
   CheckoutDto,
+  ShippingAddressDto,
 } from "../../../libs/shared/src/dto";
 import {
+  NotificationType,
   Order,
   OrderDocument,
   OrderStatus,
@@ -21,6 +24,7 @@ import {
   ProductDocument,
 } from "../../../libs/shared/src/schemas";
 import { CartService } from "../cart/cart.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 /** Allowed forward status transitions; everything else is rejected. */
 const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -34,6 +38,7 @@ const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 @Injectable()
 export class OrdersService {
   private readonly stripe: Stripe;
+  private readonly logger = new Logger(OrdersService.name);
 
   constructor(
     @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
@@ -41,6 +46,7 @@ export class OrdersService {
     private readonly productModel: Model<ProductDocument>,
     private readonly cartService: CartService,
     private readonly config: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {
     this.stripe = new Stripe(this.config.getOrThrow<string>("STRIPE_SECRET_KEY"));
   }
@@ -96,7 +102,97 @@ export class OrdersService {
       (intent.latest_charge as Stripe.Charge | null)?.payment_method_details
         ?.card?.last4 ?? "••••";
 
-    // Atomic, guarded stock decrement with rollback on any shortfall.
+    return this.finalizeOrder(
+      userId,
+      cart,
+      dto.shippingAddress,
+      dto.paymentIntentId,
+      last4,
+    );
+  }
+
+  /** Stripe-hosted Checkout: create a session and return its redirect URL. */
+  async createCheckoutSession(userId: string, shippingAddress: ShippingAddressDto) {
+    const cart = await this.cartService.getMyCart(userId);
+    if (cart.items.length === 0) {
+      throw new BadRequestException("Your cart is empty");
+    }
+    const frontendUrl =
+      this.config.get<string>("FRONTEND_URL") ?? "http://localhost:3000";
+    const session = await this.stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: Math.round(cart.summary.total * 100),
+            product_data: {
+              name: `EliteCart order · ${cart.items.length} item(s)`,
+            },
+          },
+        },
+      ],
+      success_url: `${frontendUrl}/checkout?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/checkout?canceled=1`,
+      metadata: { userId, shippingAddress: JSON.stringify(shippingAddress) },
+    });
+    return { url: session.url };
+  }
+
+  /** Complete a Stripe-hosted Checkout session → create the order (idempotent). */
+  async completeCheckoutSession(userId: string, sessionId: string) {
+    const session = await this.stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["payment_intent.latest_charge"],
+    });
+    if (session.metadata?.userId !== userId) {
+      throw new BadRequestException("Payment does not belong to this account");
+    }
+    const intent = session.payment_intent as Stripe.PaymentIntent | null;
+    const paymentIntentId = intent?.id ?? "";
+
+    // Idempotent: the success page may fire twice — return the existing order.
+    const existing = await this.orderModel
+      .findOne({ paymentIntentId })
+      .lean();
+    if (existing) {
+      return existing;
+    }
+    if (session.payment_status !== "paid") {
+      throw new HttpException(
+        "Payment was not completed. No charge was made.",
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
+
+    const cart = await this.cartService.getMyCart(userId);
+    if (cart.items.length === 0) {
+      throw new BadRequestException("Your cart is empty");
+    }
+    const shippingAddress = JSON.parse(
+      session.metadata?.shippingAddress ?? "{}",
+    ) as ShippingAddressDto;
+    const last4 =
+      (intent?.latest_charge as Stripe.Charge | null)?.payment_method_details
+        ?.card?.last4 ?? "••••";
+
+    return this.finalizeOrder(
+      userId,
+      cart,
+      shippingAddress,
+      paymentIntentId,
+      last4,
+    );
+  }
+
+  /** Atomic, guarded stock decrement (rollback on shortfall) + order creation. */
+  private async finalizeOrder(
+    userId: string,
+    cart: Awaited<ReturnType<CartService["getMyCart"]>>,
+    shippingAddress: ShippingAddressDto,
+    paymentIntentId: string,
+    last4: string,
+  ) {
     const decremented: { id: Types.ObjectId; quantity: number }[] = [];
     for (const line of cart.items) {
       const updated = await this.productModel.findOneAndUpdate(
@@ -131,7 +227,7 @@ export class OrdersService {
         quantity: line.quantity,
         lineTotal: line.lineTotal,
       })),
-      shippingAddress: dto.shippingAddress,
+      shippingAddress,
       subtotal: cart.summary.subtotal,
       discount: cart.summary.discount,
       shipping: cart.summary.shipping,
@@ -139,13 +235,36 @@ export class OrdersService {
       total: cart.summary.total,
       coupon: cart.coupon,
       paymentLast4: last4,
-      paymentIntentId: dto.paymentIntentId,
+      paymentIntentId,
       status: OrderStatus.Pending,
     });
 
     await this.cartService.clearCart(userId);
 
+    await this.notifyOrderPlaced(userId, order.id, order.total);
+
     return order.toObject();
+  }
+
+  /** Notify the buyer their order was placed. Never breaks checkout. */
+  private async notifyOrderPlaced(
+    userId: string,
+    orderId: string,
+    total: number,
+  ) {
+    try {
+      await this.notificationsService.createForUser(
+        userId,
+        NotificationType.Order,
+        "Order placed",
+        `Your order #${orderId} for $${total.toFixed(2)} has been placed.`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to create order-placed notification for ${orderId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
   }
 
   async listMyOrders(userId: string) {
@@ -339,7 +458,31 @@ export class OrdersService {
 
     order.status = status;
     await order.save();
+
+    await this.notifyStatusChange(order.user.toString(), order.id, status);
+
     return order.toObject();
+  }
+
+  /** Notify the buyer their order status changed. Never breaks the update. */
+  private async notifyStatusChange(
+    userId: string,
+    orderId: string,
+    status: OrderStatus,
+  ) {
+    try {
+      await this.notificationsService.createForUser(
+        userId,
+        NotificationType.Order,
+        `Order #${orderId} is now ${status}`,
+        `Your order #${orderId} status has been updated to ${status}.`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to create status-change notification for ${orderId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
   }
 
   async getMyOrder(userId: string, orderId: string) {

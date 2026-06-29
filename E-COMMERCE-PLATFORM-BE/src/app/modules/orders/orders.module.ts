@@ -8,6 +8,7 @@ import {
   ProductSchema,
 } from "../../../libs/shared/src/schemas";
 import { CartModule } from "../cart/cart.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 import { OrdersController } from "./orders.controller";
 import { OrdersService } from "./orders.service";
 
@@ -18,6 +19,7 @@ import { OrdersService } from "./orders.service";
       { name: Product.name, schema: ProductSchema },
     ]),
     CartModule,
+    NotificationsModule,
   ],
   controllers: [OrdersController],
   providers: [

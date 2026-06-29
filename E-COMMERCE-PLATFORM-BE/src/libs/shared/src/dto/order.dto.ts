@@ -35,6 +35,20 @@ export class CheckoutDto {
   paymentIntentId: string;
 }
 
+export class CheckoutSessionDto {
+  @ApiProperty({ type: ShippingAddressDto })
+  @ValidateNested()
+  @Type(() => ShippingAddressDto)
+  shippingAddress: ShippingAddressDto;
+}
+
+export class CompleteSessionDto {
+  @ApiProperty({ example: "cs_test_xxx", description: "Stripe Checkout Session id" })
+  @IsString()
+  @MinLength(1)
+  sessionId: string;
+}
+
 export class UpdateOrderStatusDto {
   @ApiProperty({ enum: OrderStatus, example: OrderStatus.Processing })
   @IsEnum(OrderStatus)
