@@ -117,6 +117,18 @@ const NAV_ITEMS: {
       />
     ),
   },
+  {
+    label: "Settings",
+    href: PATHS.admin.settings,
+    icon: () => (
+      <Svg
+        paths={[
+          "M12.2 2h-.4a2 2 0 0 0-2 2 1.7 1.7 0 0 1-1 1.5 1.7 1.7 0 0 1-1.9-.3l-.3-.3a2 2 0 1 0-2.8 2.8l.3.3a1.7 1.7 0 0 1 .3 1.9 1.7 1.7 0 0 1-1.5 1H2a2 2 0 1 0 0 4 1.7 1.7 0 0 1 1.5 1 1.7 1.7 0 0 1-.3 1.9l-.3.3a2 2 0 1 0 2.8 2.8l.3-.3a1.7 1.7 0 0 1 1.9-.3 1.7 1.7 0 0 1 1 1.5V22a2 2 0 1 0 4 0 1.7 1.7 0 0 1 1-1.5 1.7 1.7 0 0 1 1.9.3l.3.3a2 2 0 1 0 2.8-2.8l-.3-.3a1.7 1.7 0 0 1-.3-1.9 1.7 1.7 0 0 1 1.5-1H22a2 2 0 1 0 0-4 1.7 1.7 0 0 1-1.5-1 1.7 1.7 0 0 1 .3-1.9l.3-.3a2 2 0 1 0-2.8-2.8l-.3.3a1.7 1.7 0 0 1-1.9.3H16a1.7 1.7 0 0 1-1-1.5V4a2 2 0 0 0-2-2z",
+          "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+        ]}
+      />
+    ),
+  },
 ];
 
 const initialsOf = (value?: string) =>
@@ -133,6 +145,7 @@ const titleFromPath = (pathname: string) => {
   if (pathname.startsWith(PATHS.admin.customers)) return "Customers";
   if (pathname.startsWith(PATHS.admin.reports)) return "Reports";
   if (pathname.startsWith(PATHS.admin.users)) return "Users & admins";
+  if (pathname.startsWith(PATHS.admin.settings)) return "Settings";
   return "Dashboard";
 };
 
