@@ -283,21 +283,30 @@ export default function AdminProducts() {
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={1.5} alignItems="center">
-                          <Box
-                            sx={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 2,
-                              flexShrink: 0,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: (t) => alpha(t.palette.text.primary, 0.3),
-                              background: (t) => categoryGradient(t, product.category),
-                            }}
-                          >
-                            <CategoryGlyph category={product.category} size={20} />
-                          </Box>
+                          {product.image ? (
+                            <Box
+                              component="img"
+                              src={product.image}
+                              alt={product.name}
+                              sx={{ width: 40, height: 40, borderRadius: 2, flexShrink: 0, objectFit: "cover" }}
+                            />
+                          ) : (
+                            <Box
+                              sx={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 2,
+                                flexShrink: 0,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: (t) => alpha(t.palette.text.primary, 0.3),
+                                background: (t) => categoryGradient(t, product.category),
+                              }}
+                            >
+                              <CategoryGlyph category={product.category} size={20} />
+                            </Box>
+                          )}
                           <Box sx={{ minWidth: 0 }}>
                             <Typography variant="body2" fontWeight={600} noWrap>
                               {product.name}
