@@ -61,7 +61,7 @@ export default function StorefrontNavbar() {
     removeToken();
     dispatch(logout());
     setAnchorEl(null);
-    router.push(PATHS.home);
+    router.push(PATHS.auth.signIn);
   };
 
   return (

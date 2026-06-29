@@ -380,7 +380,7 @@ export default function Account() {
   const handleSignOut = () => {
     removeToken();
     dispatch(logout());
-    router.push(PATHS.home);
+    router.push(PATHS.auth.signIn);
   };
 
   const openOrder = (id: string) => {

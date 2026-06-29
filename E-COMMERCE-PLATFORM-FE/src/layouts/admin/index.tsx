@@ -168,7 +168,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const handleSignOut = () => {
     removeToken();
     dispatch(logout());
-    router.push(PATHS.home);
+    router.push(PATHS.auth.signIn);
   };
 
   const name = profile?.name || profile?.email?.split("@")[0] || "Admin";
