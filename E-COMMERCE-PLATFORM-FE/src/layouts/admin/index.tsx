@@ -99,6 +99,11 @@ const NAV_ITEMS: {
       />
     ),
   },
+  {
+    label: "Reports",
+    href: PATHS.admin.reports,
+    icon: () => <Svg paths={["M3 3v18h18", "m19 9-5 5-4-4-3 3"]} />,
+  },
 ];
 
 const initialsOf = (value?: string) =>
@@ -113,6 +118,7 @@ const titleFromPath = (pathname: string) => {
   if (pathname.startsWith(PATHS.admin.products)) return "Products";
   if (pathname.startsWith(PATHS.admin.orders)) return "Orders";
   if (pathname.startsWith(PATHS.admin.customers)) return "Customers";
+  if (pathname.startsWith(PATHS.admin.reports)) return "Reports";
   return "Dashboard";
 };
 

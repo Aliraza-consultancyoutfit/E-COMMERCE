@@ -180,6 +180,7 @@ export class OrdersService {
               $group: {
                 _id: "$product.category",
                 revenue: { $sum: "$items.lineTotal" },
+                units: { $sum: "$items.quantity" },
               },
             },
             { $sort: { revenue: -1 } },
@@ -225,10 +226,11 @@ export class OrdersService {
         0,
       ) || 1;
     const categoryMix = (facet?.categoryMix ?? [])
-      .slice(0, 5)
-      .map((row: { _id: string; revenue: number }) => ({
+      .slice(0, 6)
+      .map((row: { _id: string; revenue: number; units: number }) => ({
         category: row._id,
         revenue: row.revenue,
+        units: row.units,
         pct: Math.round((row.revenue / mixTotal) * 100),
       }));
 

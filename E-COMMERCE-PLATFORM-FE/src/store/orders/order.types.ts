@@ -65,7 +65,7 @@ export interface AdminStats {
   pendingCount: number;
   statusCounts: Record<OrderStatus, number>;
   monthly: { label: string; revenue: number }[];
-  categoryMix: { category: string; revenue: number; pct: number }[];
+  categoryMix: { category: string; revenue: number; units: number; pct: number }[];
   topProducts: { name: string; units: number; revenue: number }[];
   lowStock: { _id: string; name: string; stock: number; category: string }[];
 }
