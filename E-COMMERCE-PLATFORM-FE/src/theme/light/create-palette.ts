@@ -22,7 +22,12 @@ export const createPalette = (): PaletteOptions => {
     },
     background: {
       default: "#F8FCFF",
-      paper: "#F3F4F6",
+      paper: "#FFFFFF",
+    },
+    text: {
+      primary: "#1F1D2B",
+      secondary: "#6B7280",
+      disabled: "#9CA3AF",
     },
     primary,
     secondary,

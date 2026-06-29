@@ -3,7 +3,8 @@
 import { MouseEvent } from "react";
 import { Box, Card, Chip, IconButton, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { PlusIcon, ShoppingCartIcon, StarIcon } from "@/assets/icons/common";
+import { PlusIcon, StarIcon } from "@/assets/icons/common";
+import { CategoryGlyph, categoryGradient } from "@/ui/storefront/category-visuals";
 import { formatCurrency } from "@/utils/format";
 import type { Product } from "@/store/products/products.types";
 
@@ -48,7 +49,7 @@ export default function ProductCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+          background: (theme) => categoryGradient(theme, product.category),
         }}
       >
         <Chip
@@ -79,7 +80,9 @@ export default function ProductCard({
             sx={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
-          <ShoppingCartIcon width="56" height="56" />
+          <Box sx={{ color: (theme) => alpha(theme.palette.text.primary, 0.25) }}>
+            <CategoryGlyph category={product.category} size={56} />
+          </Box>
         )}
       </Box>
 

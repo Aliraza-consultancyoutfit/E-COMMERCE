@@ -16,7 +16,7 @@ const ThemeProvider = (props: LayoutProps) => {
   const { children, settings } = props;
 
   return (
-    <AppRouterCacheProvider options={{ enableCssLayer: true }}>
+    <AppRouterCacheProvider>
       <SettingsProvider onUpdate={updateSettings} settings={settings}>
         <SettingsConsumer>
           {(themeSettings) => {
@@ -27,6 +27,10 @@ const ThemeProvider = (props: LayoutProps) => {
               <MUIThemeProvider theme={theme}>
                 <GlobalStyles
                   styles={{
+                    body: {
+                      color: theme.palette.text.primary,
+                      backgroundColor: theme.palette.background.default,
+                    },
                     "&::-webkit-scrollbar": {
                       width: 0,
                       height: 6,

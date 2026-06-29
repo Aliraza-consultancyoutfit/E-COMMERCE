@@ -16,6 +16,7 @@ import {
 import { alpha } from "@mui/material/styles";
 import { ArrowIcon, ShieldIcon, ShoppingCartIcon } from "@/assets/icons/common";
 import ProductCard from "@/ui/storefront/product-card";
+import { CategoryAvatar } from "@/ui/storefront/category-visuals";
 import { PATHS } from "@/constants/routes";
 import {
   useGetCategoriesQuery,
@@ -212,21 +213,7 @@ export default function Landing() {
                 "&:hover": { borderColor: "primary.light", bgcolor: "action.hover" },
               }}
             >
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 3,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "primary.main",
-                  fontWeight: 700,
-                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                }}
-              >
-                {entry.category.charAt(0)}
-              </Box>
+              <CategoryAvatar category={entry.category} />
               <Typography variant="body2" fontWeight={600}>
                 {entry.category}
               </Typography>

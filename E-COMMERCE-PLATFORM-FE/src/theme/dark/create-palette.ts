@@ -24,6 +24,11 @@ export const createPalette = (): PaletteOptions => {
       default: "#1F1D2B",
       paper: "#1F2937",
     },
+    text: {
+      primary: "#F9FAFB",
+      secondary: "#9CA3AF",
+      disabled: "#6B7280",
+    },
     primary,
     secondary,
     tertiary,

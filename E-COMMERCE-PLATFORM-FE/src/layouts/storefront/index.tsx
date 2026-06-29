@@ -13,6 +13,7 @@ export default function StorefrontLayout({ children }: { children: ReactNode }) 
         display: "flex",
         flexDirection: "column",
         bgcolor: "background.default",
+        color: "text.primary",
       }}
     >
       <StorefrontNavbar />
