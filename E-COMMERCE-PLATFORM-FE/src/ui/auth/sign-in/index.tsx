@@ -25,7 +25,10 @@ import { getApiErrorMessage } from "@/utils/api-error";
 import { usePostAuth } from "@/ui/auth/use-post-auth";
 
 const schema = yup.object({
-  email: yup.string().email("Enter a valid email").required("Email is required"),
+  email: yup
+    .string()
+    .email("Enter a valid email")
+    .required("Email is required"),
   password: yup
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -63,12 +66,21 @@ export default function SignIn() {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} sx={{ letterSpacing: "-0.01em" }}>
+      <Typography
+        variant="h4"
+        fontWeight={700}
+        sx={{ letterSpacing: "-0.01em" }}
+      >
         Sign in
       </Typography>
       <Typography color="text.secondary" sx={{ mt: 1, mb: 3.5 }}>
         New here?{" "}
-        <MuiLink component={NextLink} href={PATHS.auth.signUp} fontWeight={600}>
+        <MuiLink
+          component={NextLink}
+          href={PATHS.auth.signUp}
+          fontWeight={600}
+          sx={{ color: "primary.main", textDecoration: "none" }}
+        >
           Create an account
         </MuiLink>
       </Typography>
@@ -108,7 +120,10 @@ export default function SignIn() {
                 Forgot password?
               </Typography>
             </Stack>
-            <RHFPasswordField name="password" placeholder="Enter your password" />
+            <RHFPasswordField
+              name="password"
+              placeholder="Enter your password"
+            />
           </Box>
 
           <RHFCheckbox name="remember" label="Remember me for 30 days" />
