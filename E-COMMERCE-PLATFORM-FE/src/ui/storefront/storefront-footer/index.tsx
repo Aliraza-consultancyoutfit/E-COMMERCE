@@ -34,7 +34,7 @@ export default function StorefrontFooter() {
           }}
         >
           <Box>
-            <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 1.5 }}>
+            <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 1.5, cursor: "pointer" }} onClick={() => window.location.assign("/")}>
               <Box
                 sx={{
                   width: 30,
@@ -49,7 +49,7 @@ export default function StorefrontFooter() {
               >
                 <ShoppingCartIcon width="17" height="17" stroke="currentColor" />
               </Box>
-              <Typography variant="subtitle1" fontWeight={700}>
+              <Typography variant="body1" fontWeight={700}>
                 EliteCart
               </Typography>
             </Stack>
@@ -60,7 +60,7 @@ export default function StorefrontFooter() {
 
           {COLUMNS.map((column) => (
             <Box key={column.title}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+              <Typography variant="body1" fontWeight={700} sx={{ mb: 1.5 }}>
                 {column.title}
               </Typography>
               <Stack spacing={1}>

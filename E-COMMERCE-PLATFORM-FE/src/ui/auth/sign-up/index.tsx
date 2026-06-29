@@ -25,7 +25,10 @@ import { usePostAuth } from "@/ui/auth/use-post-auth";
 
 const schema = yup.object({
   name: yup.string().trim().required("Full name is required"),
-  email: yup.string().email("Enter a valid email").required("Email is required"),
+  email: yup
+    .string()
+    .email("Enter a valid email")
+    .required("Email is required"),
   password: yup
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -77,19 +80,32 @@ export default function SignUp() {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} sx={{ letterSpacing: "-0.01em" }}>
+      <Typography
+        variant="h4"
+        fontWeight={700}
+        sx={{ letterSpacing: "-0.01em" }}
+      >
         Create account
       </Typography>
       <Typography color="text.secondary" sx={{ mt: 1, mb: 3.5 }}>
         Already have one?{" "}
-        <MuiLink component={NextLink} href={PATHS.auth.signIn} fontWeight={600}>
+        <MuiLink
+          component={NextLink}
+          href={PATHS.auth.signIn}
+          fontWeight={600}
+          sx={{ color: "primary.main", textDecoration: "none" }}
+        >
           Sign in
         </MuiLink>
       </Typography>
 
       <FormProvider methods={methods} onSubmit={onSubmit}>
         <Stack spacing={2}>
-          <RHFTextField name="name" label="Full name" placeholder="Jane Cooper" />
+          <RHFTextField
+            name="name"
+            label="Full name"
+            placeholder="Jane Cooper"
+          />
           <RHFTextField
             name="email"
             label="Email"
