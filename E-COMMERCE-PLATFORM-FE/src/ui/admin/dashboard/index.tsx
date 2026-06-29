@@ -16,6 +16,8 @@ import {
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import ApiErrorState from "@/components/api-error-state";
+import Chart from "@/components/chart";
+import NoData from "@/components/no-data";
 import { OrderStatusChip, formatOrderDate } from "@/ui/admin/order-status";
 import { PATHS } from "@/constants/routes";
 import {
@@ -23,6 +25,11 @@ import {
   useGetAllOrdersQuery,
 } from "@/store/orders/order.api";
 import { formatCurrency } from "@/utils/format";
+import {
+  categoryDonutOptions,
+  revenueAreaOptions,
+  salesBarOptions,
+} from "./dashboard.data";
 
 const orderNumber = (id: string) => `#${id.slice(-6).toUpperCase()}`;
 const initialsOf = (value?: string) =>
@@ -33,11 +40,22 @@ const initialsOf = (value?: string) =>
     .map((p) => p[0]?.toUpperCase())
     .join("") || "—";
 
+const CARD_SX = { border: 1, borderColor: "divider", borderRadius: 4, p: 2.75 } as const;
+
 function Card({ children, sx }: { children: ReactNode; sx?: object }) {
+  return <Box sx={{ ...CARD_SX, ...sx }}>{children}</Box>;
+}
+
+/** Compact empty state for a dashboard card. */
+function EmptyCard({ message, height = 200 }: { message: string; height?: number }) {
   return (
-    <Box sx={{ border: 1, borderColor: "divider", borderRadius: 4, p: 2.75, ...sx }}>
-      {children}
-    </Box>
+    <NoData
+      height={`${height}px`}
+      message={message}
+      description=""
+      buttonVisibility={false}
+      imgStyle={{ maxWidth: "150px" }}
+    />
   );
 }
 
@@ -106,121 +124,9 @@ const ICONS: Record<string, ReactNode> = {
   ),
 };
 
-function RevenueChart({ data }: { data: { label: string; revenue: number }[] }) {
-  const theme = useTheme();
-  const W = 600;
-  const H = 200;
-  if (data.length < 2) {
-    return (
-      <Box sx={{ height: H, display: "flex", alignItems: "center", justifyContent: "center", color: "text.secondary" }}>
-        <Typography variant="body2">Not enough data yet</Typography>
-      </Box>
-    );
-  }
-  const values = data.map((d) => d.revenue);
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const pad = (max - min) * 0.2 || 1;
-  const lo = min - pad;
-  const hi = max + pad;
-  const stepX = W / (data.length - 1);
-  const points = values.map((v, i) => [i * stepX, H - ((v - lo) / (hi - lo)) * H]);
-  const line = points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  const area = `${line} L${W},${H} L0,${H} Z`;
-  return (
-    <Box>
-      <Box component="svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" sx={{ width: "100%", height: 200, display: "block" }}>
-        <defs>
-          <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={theme.palette.primary.main} stopOpacity={0.22} />
-            <stop offset="100%" stopColor={theme.palette.primary.main} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        {[0.25, 0.5, 0.75].map((f) => (
-          <line key={f} x1={0} y1={H * f} x2={W} y2={H * f} stroke={theme.palette.divider} strokeWidth={1} />
-        ))}
-        <path d={area} fill="url(#revGrad)" />
-        <path d={line} fill="none" stroke={theme.palette.primary.main} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-      </Box>
-      <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
-        {data.map((d, i) => (
-          <Typography key={`${d.label}-${i}`} variant="caption" color="text.secondary">
-            {d.label}
-          </Typography>
-        ))}
-      </Stack>
-    </Box>
-  );
-}
-
-function Donut({ data }: { data: { category: string; pct: number }[] }) {
-  const theme = useTheme();
-  const palette = [
-    theme.palette.primary.main,
-    theme.palette.info.main,
-    theme.palette.success.main,
-    theme.palette.warning.main,
-    theme.palette.error.main,
-  ];
-  const R = 44;
-  const circ = 2 * Math.PI * R;
-  let acc = 0;
-  const segments = data.map((d, i) => {
-    const frac = d.pct / 100;
-    const seg = {
-      color: palette[i % palette.length],
-      dash: `${(frac * circ).toFixed(1)} ${(circ - frac * circ).toFixed(1)}`,
-      offset: (-acc * circ).toFixed(1),
-    };
-    acc += frac;
-    return seg;
-  });
-  if (data.length === 0) {
-    return (
-      <Box sx={{ height: 160, display: "flex", alignItems: "center", justifyContent: "center", color: "text.secondary" }}>
-        <Typography variant="body2">No sales yet</Typography>
-      </Box>
-    );
-  }
-  return (
-    <Box>
-      <Box sx={{ display: "flex", justifyContent: "center", mb: 2.25 }}>
-        <svg width="150" height="150" viewBox="0 0 120 120">
-          {segments.map((s, i) => (
-            <circle
-              key={i}
-              cx="60"
-              cy="60"
-              r={R}
-              fill="none"
-              stroke={s.color}
-              strokeWidth={16}
-              strokeDasharray={s.dash}
-              strokeDashoffset={s.offset}
-              transform="rotate(-90 60 60)"
-            />
-          ))}
-        </svg>
-      </Box>
-      <Stack spacing={1.1}>
-        {data.map((d, i) => (
-          <Stack key={d.category} direction="row" alignItems="center" spacing={1.1}>
-            <Box sx={{ width: 10, height: 10, borderRadius: 0.75, bgcolor: palette[i % palette.length] }} />
-            <Typography variant="body2" sx={{ flex: 1 }} noWrap>
-              {d.category}
-            </Typography>
-            <Typography variant="body2" fontWeight={600} color="text.secondary">
-              {d.pct}%
-            </Typography>
-          </Stack>
-        ))}
-      </Stack>
-    </Box>
-  );
-}
-
 export default function AdminDashboard() {
   const router = useRouter();
+  const theme = useTheme();
   const { data: stats, isLoading, isError, refetch } = useGetAdminStatsQuery();
   const { data: latest } = useGetAllOrdersQuery({ page: 1, limit: 5 });
 
@@ -237,9 +143,11 @@ export default function AdminDashboard() {
     return <ApiErrorState height="50vh" buttonText="Try again" buttonClick={() => refetch()} />;
   }
 
-  const barMax = Math.max(...stats.monthly.map((m) => m.revenue), 1);
   const topMax = Math.max(...stats.topProducts.map((t) => t.units), 1);
   const records = latest?.records ?? [];
+
+  const monthLabels = stats.monthly.map((m) => m.label);
+  const monthValues = stats.monthly.map((m) => m.revenue);
 
   return (
     <Stack spacing={2.5}>
@@ -254,51 +162,56 @@ export default function AdminDashboard() {
       {/* Revenue + category mix */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1.7fr 1fr" }, gap: 2.25 }}>
         <Card>
-          <Box sx={{ mb: 2.25 }}>
+          <Box sx={{ mb: 1 }}>
             <Typography fontWeight={700}>Revenue</Typography>
             <Typography variant="body2" color="text.secondary">
               By month
             </Typography>
           </Box>
-          <RevenueChart data={stats.monthly} />
+          {monthValues.length < 2 ? (
+            <EmptyCard message="Not enough data yet" height={220} />
+          ) : (
+            <Chart
+              type="area"
+              height={220}
+              series={[{ name: "Revenue", data: monthValues }]}
+              options={revenueAreaOptions(theme, monthLabels)}
+            />
+          )}
         </Card>
         <Card>
           <Typography fontWeight={700}>Category mix</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.75 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             Share of sales
           </Typography>
-          <Donut data={stats.categoryMix} />
+          {stats.categoryMix.length === 0 ? (
+            <EmptyCard message="No sales yet" height={240} />
+          ) : (
+            <Chart
+              type="donut"
+              height={260}
+              series={stats.categoryMix.map((c) => c.pct)}
+              options={categoryDonutOptions(theme, stats.categoryMix.map((c) => c.category))}
+            />
+          )}
         </Card>
       </Box>
 
       {/* Sales trend + top products + inventory */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 2.25 }}>
         <Card>
-          <Typography fontWeight={700} sx={{ mb: 2.25 }}>
+          <Typography fontWeight={700} sx={{ mb: 1 }}>
             Sales trend
           </Typography>
           {stats.monthly.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              No orders yet
-            </Typography>
+            <EmptyCard message="No orders yet" height={180} />
           ) : (
-            <Stack direction="row" alignItems="flex-end" justifyContent="space-between" spacing={1} sx={{ height: 130 }}>
-              {stats.monthly.slice(-7).map((m, i, arr) => (
-                <Stack key={`${m.label}-${i}`} alignItems="center" spacing={1} sx={{ flex: 1, height: "100%", justifyContent: "flex-end" }}>
-                  <Box
-                    sx={{
-                      width: "100%",
-                      borderRadius: "6px 6px 0 0",
-                      height: `${Math.max((m.revenue / barMax) * 100, 4)}%`,
-                      bgcolor: (t) => (i === arr.length - 1 ? t.palette.primary.main : alpha(t.palette.primary.main, 0.4)),
-                    }}
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    {m.label}
-                  </Typography>
-                </Stack>
-              ))}
-            </Stack>
+            <Chart
+              type="bar"
+              height={190}
+              series={[{ name: "Revenue", data: monthValues }]}
+              options={salesBarOptions(theme, monthLabels)}
+            />
           )}
         </Card>
 
@@ -307,9 +220,7 @@ export default function AdminDashboard() {
             Top products
           </Typography>
           {stats.topProducts.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              No sales yet
-            </Typography>
+            <EmptyCard message="No sales yet" height={180} />
           ) : (
             <Stack spacing={1.75}>
               {stats.topProducts.map((t) => (
@@ -336,9 +247,7 @@ export default function AdminDashboard() {
             Inventory alerts
           </Typography>
           {stats.lowStock.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              All products stocked
-            </Typography>
+            <EmptyCard message="All products stocked" height={180} />
           ) : (
             <Stack spacing={1.75}>
               {stats.lowStock.map((p) => {
@@ -380,9 +289,7 @@ export default function AdminDashboard() {
           </Typography>
         </Stack>
         {records.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ p: 2.25 }}>
-            No orders yet
-          </Typography>
+          <EmptyCard message="No orders yet" height={220} />
         ) : (
           <Box sx={{ overflowX: "auto" }}>
             <Table>
