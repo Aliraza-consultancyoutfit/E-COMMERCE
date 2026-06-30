@@ -10,6 +10,22 @@ export const PATHS = {
   catalog: "/catalog",
   product: (id: string) => `/product/${id}`,
 
+  // Storefront content + system states
+  content: {
+    about: "/about",
+    contact: "/contact",
+    help: "/help",
+    careers: "/careers",
+    press: "/press",
+    sustainability: "/sustainability",
+    shipping: "/shipping",
+    returns: "/returns",
+    privacy: "/privacy",
+    terms: "/terms",
+    cookies: "/cookies",
+  },
+  accessDenied: "/access-denied",
+
   // Authenticated customer
   cart: "/cart",
   checkout: "/checkout",
@@ -21,9 +37,19 @@ export const PATHS = {
     signUp: "/auth/sign-up",
   },
 
-  // Admin (built later from Admin.dc.html)
+  // Admin
   admin: {
     root: "/admin",
+    products: "/admin/products",
+    productNew: "/admin/products/new",
+    product: (id: string) => `/admin/products/${id}`,
+    orders: "/admin/orders",
+    customers: "/admin/customers",
+    customer: (id: string) => `/admin/customers/${id}`,
+    reports: "/admin/reports",
+    users: "/admin/users",
+    settings: "/admin/settings",
+    logs: "/admin/logs",
   },
 } as const;
 

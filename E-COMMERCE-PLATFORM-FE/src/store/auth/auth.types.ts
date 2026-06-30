@@ -14,12 +14,43 @@ export interface AuthResponse {
   user: AuthUser;
 }
 
+export interface Profile {
+  id: string;
+  name?: string;
+  email: string;
+  role: UserRole;
+  avatar?: string;
+  notifyOrders?: boolean;
+  notifyPromotions?: boolean;
+  notifyRecommendations?: boolean;
+  twoFactorEnabled?: boolean;
+}
+
+export interface UpdateProfilePayload {
+  name?: string;
+  avatar?: string;
+  notifyOrders?: boolean;
+  notifyPromotions?: boolean;
+  notifyRecommendations?: boolean;
+  twoFactorEnabled?: boolean;
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  success: boolean;
+}
+
 export interface LoginPayload {
   email: string;
   password: string;
 }
 
 export interface RegisterPayload {
+  name?: string;
   email: string;
   password: string;
 }

@@ -1,14 +1,18 @@
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app/app.module";
 import { AllExceptionsFilter } from "./libs/shared/src/filters";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
   const port = configService.get<number>("PORT") ?? 5000;
+
+  // Allow base64 profile avatars (resized client-side) above the 100kb default.
+  app.useBodyParser("json", { limit: "2mb" });
 
   app.enableCors();
   app.setGlobalPrefix("api");

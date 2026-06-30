@@ -36,6 +36,7 @@ const baseQueryWithAuth: BaseQueryFn<
   if (result.error?.status === UNAUTHORIZED) {
     removeToken();
     api.dispatch(logout());
+    api.dispatch(baseApi.util.resetApiState());
     if (
       typeof window !== "undefined" &&
       window.location.pathname !== PATHS.auth.signIn
@@ -53,6 +54,9 @@ export const TAG_TYPES = [
   "Order",
   "User",
   "Recommendation",
+  "Wishlist",
+  "Address",
+  "Notification",
 ] as const;
 
 /** The single RTK Query API. Feature slices extend it via injectEndpoints. */

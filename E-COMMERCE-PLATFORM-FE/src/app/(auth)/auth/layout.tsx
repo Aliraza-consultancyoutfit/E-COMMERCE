@@ -1,5 +1,10 @@
 import { AuthLayout } from "@/layouts";
+import { GuestGuard } from "@/guards";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <AuthLayout>{children}</AuthLayout>;
+  return (
+    <GuestGuard>
+      <AuthLayout>{children}</AuthLayout>
+    </GuestGuard>
+  );
 }

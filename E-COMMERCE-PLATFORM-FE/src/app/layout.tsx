@@ -31,8 +31,11 @@ export default async function Root({
     : undefined;
 
   return (
-    <html lang="en">
-      <body className={workSans.variable}>
+    // suppressHydrationWarning: browser extensions (e.g. ColorZilla's
+    // cz-shortcut-listen) inject attributes on <html>/<body> before React
+    // hydrates, which otherwise trips a benign hydration mismatch here.
+    <html lang="en" suppressHydrationWarning>
+      <body className={workSans.variable} suppressHydrationWarning>
         <RootLayout settings={settings}>{children}</RootLayout>
       </body>
     </html>
