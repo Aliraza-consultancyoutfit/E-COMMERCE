@@ -1,5 +1,6 @@
 export const COOKIES_KEYS = {
   SETTINGS_STORAGE_KEY: "telcov.app.settings",
+  AUTH_TOKEN: "elitecart.auth.token",
 };
 
 export const PALETTE_MODE = {
