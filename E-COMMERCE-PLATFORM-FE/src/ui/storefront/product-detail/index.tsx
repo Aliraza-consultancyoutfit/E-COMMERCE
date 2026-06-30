@@ -56,6 +56,16 @@ export default function ProductDetail({ id }: { id: string }) {
 
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState(0);
+  const [activeImage, setActiveImage] = useState(0);
+  const [zoom, setZoom] = useState({ active: false, x: 50, y: 50 });
+
+  const gallery =
+    product?.images && product.images.length > 0
+      ? product.images
+      : product?.image
+        ? [product.image]
+        : [];
+  const mainImage = gallery[activeImage] ?? gallery[0];
 
   const { data: relatedData } = useGetProductsQuery(
     { category: product?.category, limit: 5 },
@@ -156,6 +166,19 @@ export default function ProductDetail({ id }: { id: string }) {
         {/* Gallery */}
         <Box>
           <Box
+            onMouseEnter={() => {
+              if (mainImage) setZoom((z) => ({ ...z, active: true }));
+            }}
+            onMouseLeave={() => setZoom({ active: false, x: 50, y: 50 })}
+            onMouseMove={(e) => {
+              if (!mainImage) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              setZoom({
+                active: true,
+                x: ((e.clientX - rect.left) / rect.width) * 100,
+                y: ((e.clientY - rect.top) / rect.height) * 100,
+              });
+            }}
             sx={{
               position: "relative",
               aspectRatio: "1 / 1",
@@ -165,36 +188,63 @@ export default function ProductDetail({ id }: { id: string }) {
               alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
+              cursor: mainImage ? "zoom-in" : "default",
               color: (theme) => alpha(theme.palette.text.primary, 0.25),
               background: (theme) => categoryGradient(theme, product.category),
             }}
           >
-            {product.image ? (
+            {mainImage ? (
               <Box
                 component="img"
-                src={product.image}
+                src={mainImage}
                 alt={product.name}
-                sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  transition: "transform 0.15s ease-out",
+                  transform: zoom.active ? "scale(2.2)" : "scale(1)",
+                  transformOrigin: `${zoom.x}% ${zoom.y}%`,
+                }}
               />
             ) : (
               <CategoryGlyph category={product.category} size={120} />
             )}
           </Box>
-          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1.5 }}>
-            {[0, 1, 2, 3].map((index) => (
-              <Box
-                key={index}
-                sx={{
-                  aspectRatio: "1 / 1",
-                  borderRadius: 3,
-                  cursor: "pointer",
-                  border: 2,
-                  borderColor: index === 0 ? "primary.main" : "transparent",
-                  background: (theme) => categoryGradient(theme, product.category),
-                }}
-              />
-            ))}
-          </Box>
+          {gallery.length > 1 && (
+            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1.5 }}>
+              {gallery.map((src, index) => {
+                const active = index === activeImage;
+                return (
+                  <Box
+                    key={`${index}-${src.slice(-12)}`}
+                    component="button"
+                    type="button"
+                    aria-label={`View image ${index + 1}`}
+                    aria-pressed={active}
+                    onClick={() => setActiveImage(index)}
+                    sx={{
+                      p: 0,
+                      aspectRatio: "1 / 1",
+                      borderRadius: 3,
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      border: 2,
+                      borderColor: active ? "primary.main" : "divider",
+                      bgcolor: "background.paper",
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={src}
+                      alt={`${product.name} thumbnail ${index + 1}`}
+                      sx={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
         </Box>
 
         {/* Info */}

@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsEnum,
   IsInt,
   IsNumber,
@@ -90,10 +91,16 @@ export class CreateProductDto {
   @Min(0)
   oldPrice?: number;
 
-  @ApiPropertyOptional({ example: "https://…/headphones.jpg" })
+  @ApiPropertyOptional({ example: "https://…/headphones.jpg", description: "Cover image" })
   @IsOptional()
   @IsString()
   image?: string;
+
+  @ApiPropertyOptional({ type: [String], description: "Gallery images (base64 or URL)" })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
 
   @ApiProperty({ example: "Audio" })
   @IsString()

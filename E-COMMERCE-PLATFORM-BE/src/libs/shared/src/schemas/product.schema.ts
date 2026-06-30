@@ -16,9 +16,13 @@ export class Product {
   @Prop({ min: 0, default: 0 })
   oldPrice: number;
 
-  /** Image URL. When empty the storefront renders a themed placeholder. */
+  /** Cover image (base64 or URL). Empty → storefront renders a placeholder. */
   @Prop({ default: "" })
   image: string;
+
+  /** Gallery images (base64 or URL); the cover is also kept in `image`. */
+  @Prop({ type: [String], default: [] })
+  images: string[];
 
   @Prop({ required: true, trim: true, index: true })
   category: string;

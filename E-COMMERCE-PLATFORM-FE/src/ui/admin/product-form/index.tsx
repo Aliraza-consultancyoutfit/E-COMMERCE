@@ -6,8 +6,9 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import toast from "react-hot-toast";
-import { Box, Button, Skeleton, Stack, Typography } from "@mui/material";
+import { Box, Button, IconButton, Skeleton, Stack, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { CrossIcon } from "@/assets/icons/common";
 import FormProvider from "@/components/react-hook-form/form-provider";
 import RHFTextField from "@/components/react-hook-form/rhf-text-field";
 import { PATHS } from "@/constants/routes";
@@ -23,7 +24,7 @@ const schema = yup.object({
   name: yup.string().trim().required("Product name is required"),
   description: yup.string().default(""),
   category: yup.string().trim().required("Category is required"),
-  image: yup.string().default(""),
+  images: yup.array(yup.string().required()).default([]),
   price: yup
     .number()
     .transform((value, original) => (original === "" ? undefined : value))
@@ -63,105 +64,120 @@ const UploadGlyph = () => (
 );
 
 /**
- * Image picker that stores the file as a base64 data URL in the form's
- * `image` string field — no upload endpoint needed (mirrors the avatar flow).
- * The preview also renders an existing http(s) URL when editing.
+ * Multi-image picker. Each file is stored as a base64 data URL in the form's
+ * `images` array — no upload endpoint needed (mirrors the avatar flow). The
+ * first image is the cover; previews also render existing http(s) URLs.
  */
-function ImageUpload({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+function MultiImageUpload({ value, onChange }: { value: string[]; onChange: (next: string[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  const readFile = async (file?: File) => {
-    if (!file) return;
+  const addFiles = async (files?: FileList | null) => {
+    if (!files || files.length === 0) return;
     try {
-      onChange(await fileToProductImageDataUrl(file));
+      const encoded = await Promise.all(
+        Array.from(files).map((file) => fileToProductImageDataUrl(file)),
+      );
+      onChange([...value, ...encoded]);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not read that image");
     }
   };
 
-  const hiddenInput = (
-    <input
-      ref={inputRef}
-      type="file"
-      accept="image/*"
-      hidden
-      onChange={(e) => {
-        void readFile(e.target.files?.[0]);
-        e.target.value = "";
-      }}
-    />
-  );
+  const removeAt = (index: number) => onChange(value.filter((_, i) => i !== index));
 
-  if (value) {
-    return (
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
-        <Box
-          component="img"
-          src={value}
-          alt="Product preview"
-          sx={{ width: 96, height: 96, borderRadius: 3, objectFit: "cover", border: 1, borderColor: "divider", flexShrink: 0 }}
-        />
-        <Stack direction="row" spacing={1}>
-          <Button variant="outlined" color="inherit" sx={{ borderColor: "divider" }} onClick={() => inputRef.current?.click()}>
-            Replace
-          </Button>
-          <Button variant="outlined" color="error" onClick={() => onChange("")}>
-            Remove
-          </Button>
-        </Stack>
-        {hiddenInput}
-      </Stack>
-    );
-  }
+  const makeCover = (index: number) => {
+    const next = [...value];
+    const [picked] = next.splice(index, 1);
+    onChange([picked, ...next]);
+  };
 
   return (
-    <Box
-      role="button"
-      tabIndex={0}
-      aria-label="Upload product image"
-      onClick={() => inputRef.current?.click()}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          inputRef.current?.click();
-        }
-      }}
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragOver(true);
-      }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setDragOver(false);
-        void readFile(e.dataTransfer.files?.[0]);
-      }}
-      sx={{
-        border: "1.5px dashed",
-        borderColor: dragOver ? "primary.main" : "primary.light",
-        borderRadius: 3,
-        p: 3.5,
-        textAlign: "center",
-        cursor: "pointer",
-        outline: "none",
-        bgcolor: (t) => alpha(t.palette.primary.main, dragOver ? 0.12 : 0.05),
-        "&:focus-visible": { borderColor: "primary.main", boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.2)}` },
-      }}
-    >
-      <Box sx={{ display: "inline-flex", width: 44, height: 44, borderRadius: 2.75, bgcolor: "background.paper", alignItems: "center", justifyContent: "center", color: "primary.main", mb: 1.25 }}>
-        <UploadGlyph />
-      </Box>
-      <Typography variant="body2" fontWeight={600}>
-        Drag &amp; drop an image, or{" "}
-        <Box component="span" sx={{ color: "primary.main" }}>
-          browse
+    <Box>
+      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 1.5 }}>
+        {value.map((src, index) => (
+          <Box
+            key={`${index}-${src.slice(-12)}`}
+            sx={{ position: "relative", aspectRatio: "1 / 1", borderRadius: 3, overflow: "hidden", border: 2, borderColor: index === 0 ? "primary.main" : "divider" }}
+          >
+            <Box component="img" src={src} alt={`Product image ${index + 1}`} sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            {index === 0 && (
+              <Box sx={{ position: "absolute", top: 6, left: 6, px: 0.85, py: 0.25, borderRadius: 1, bgcolor: "primary.main", color: "primary.contrastText", fontSize: 10, fontWeight: 700 }}>
+                Cover
+              </Box>
+            )}
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ position: "absolute", bottom: 6, left: 6, right: 6 }}>
+              {index !== 0 ? (
+                <Button size="small" onClick={() => makeCover(index)} sx={{ minWidth: 0, px: 0.85, fontSize: 11, bgcolor: "background.paper", "&:hover": { bgcolor: "background.paper" } }}>
+                  Set cover
+                </Button>
+              ) : (
+                <Box />
+              )}
+              <IconButton size="small" aria-label="Remove image" onClick={() => removeAt(index)} sx={{ bgcolor: "background.paper", color: "error.main", "&:hover": { bgcolor: "background.paper" } }}>
+                <CrossIcon width="14" height="14" stroke="currentColor" />
+              </IconButton>
+            </Stack>
+          </Box>
+        ))}
+
+        <Box
+          role="button"
+          tabIndex={0}
+          aria-label="Add product images"
+          onClick={() => inputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              inputRef.current?.click();
+            }
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            void addFiles(e.dataTransfer.files);
+          }}
+          sx={{
+            aspectRatio: "1 / 1",
+            border: "1.5px dashed",
+            borderColor: dragOver ? "primary.main" : "primary.light",
+            borderRadius: 3,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            outline: "none",
+            color: "primary.main",
+            bgcolor: (t) => alpha(t.palette.primary.main, dragOver ? 0.12 : 0.05),
+            "&:focus-visible": { borderColor: "primary.main", boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.2)}` },
+          }}
+        >
+          <UploadGlyph />
+          <Typography variant="caption" fontWeight={600} sx={{ mt: 0.5 }}>
+            Add
+          </Typography>
         </Box>
+      </Box>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 1.25 }}>
+        PNG or JPG, up to 5MB each. The first image is the cover.
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-        PNG or JPG, up to 5MB
-      </Typography>
-      {hiddenInput}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(e) => {
+          void addFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
     </Box>
   );
 }
@@ -183,7 +199,11 @@ export default function ProductForm({ productId }: { productId?: string }) {
           name: product.name,
           description: product.description,
           category: product.category,
-          image: product.image,
+          images: product.images?.length
+            ? product.images
+            : product.image
+              ? [product.image]
+              : [],
           price: product.price,
           oldPrice: product.oldPrice,
           stock: product.stock,
@@ -193,7 +213,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
       name: "",
       description: "",
       category: "",
-      image: "",
+      images: [],
       price: undefined,
       oldPrice: 0,
       stock: undefined,
@@ -205,7 +225,8 @@ export default function ProductForm({ productId }: { productId?: string }) {
       name: values.name,
       description: values.description,
       category: values.category,
-      image: values.image,
+      image: values.images[0] ?? "",
+      images: values.images,
       price: values.price,
       oldPrice: values.oldPrice,
       stock: values.stock,
@@ -254,9 +275,9 @@ export default function ProductForm({ productId }: { productId?: string }) {
           </SectionCard>
 
           <SectionCard title="Media">
-            <ImageUpload
-              value={methods.watch("image") || ""}
-              onChange={(next) => methods.setValue("image", next, { shouldDirty: true })}
+            <MultiImageUpload
+              value={methods.watch("images") || []}
+              onChange={(next) => methods.setValue("images", next, { shouldDirty: true })}
             />
           </SectionCard>
 
