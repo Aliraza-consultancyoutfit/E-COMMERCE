@@ -5,7 +5,7 @@ import { Button, Divider, Stack } from "@mui/material";
 import { AppleIcon, GoogleIcon } from "@/assets/icons/common";
 
 const notifyUnavailable = () =>
-  toast("Social sign-in isn't available in this demo", { icon: "ℹ️" });
+  toast("Social sign-in isn't available in this demo coming soon!", { icon: "ℹ️" });
 
 const buttonSx = {
   height: 48,
