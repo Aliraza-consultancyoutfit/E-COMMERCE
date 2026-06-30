@@ -6,6 +6,21 @@
 - Verified every step (read diffs, `lint`+`build`, hit live endpoints, clicked flows) rather than trusting agent output.
 - Commits are small and conventional, scoped per module; push only with explicit user permission.
 
+## Where the agent helped — and where it failed
+The agent was strongest at **breadth**: scaffolding a full vertical slice (schema → DTO → service → controller → Swagger → themed FE section reusing shared components) and building the RTK Query data layer once for reuse. The places it got things **wrong**, and how they were caught:
+
+- **Cross-session data leak (subtle, important).** After sign-out — or signing in as a different user — RTK Query's cache still held the *previous* user's profile, cart, and orders, so stale data flashed into the new session. Caught by actually clicking the sign-out → sign-in-as-other-user flow, not by reading code. Fixed with a single `signOut` thunk plus `baseApi.util.resetApiState()` on login and on any 401 (`store/auth/auth.actions.ts`, `base-api.ts`, `use-post-auth.ts`).
+- **SSR hydration mismatch.** Auth state hydrates from the cookie on the client, so the server rendered logged-out while the client's singleton store already had a session → React hydration warnings and guarded content leaking into server HTML. Fixed by gating auth-dependent UI on a `mounted` flag so the first client render matches the server (`guards/auth-guard.tsx`, `storefront-navbar/index.tsx`).
+- **Stripe default import broke the build.** The agent's first Stripe integration used a default import that failed under the existing TS config; the `build` gate caught it and it was fixed by enabling `esModuleInterop` (commit `4029cca`).
+- **Smaller misses, corrected via review/clicks:** sign-out not redirecting to login (`2fb5059`), the admin layout scrolling the whole page instead of just content (`4408c6d`/`21922e5`), and orders screens drifting from the design (`a3061bc`). `POST /auth/login` still returns Nest's default `201` where `200` is more correct — left as a documented polish item rather than silently "fixed."
+
+## Supervision & verification
+Output was never accepted blind:
+- **Read every diff** before staging; **`lint` + `build` must be green on both apps** before any commit (re-run for this push: FE lint/build ✓, BE lint/build ✓).
+- **Hit the live API** (Swagger at `/api/docs`) and **clicked the actual flows** against a local Docker `mongo:7` — the cache-leak and hydration bugs above were found this way, not by static reading.
+- **Adversarial checks on the graded cross-cutting concerns:** attempted IDOR by changing ids on cart/order requests (blocked by token-scoped queries), price/total tampering (ignored — totals recomputed server-side), and stock oversell (blocked by the atomic guarded decrement).
+- **Both themes verified** (light + dark) on every screen; new files grepped for hardcoded colors/spacing.
+
 ## Design workflow
 - Design source of truth: the Claude Design project **"Enterprise E-Commerce Design System"** (`claude.ai/design`), imported via the design MCP.
 - The customer storefront is driven by **`Storefront.dc.html`** (Landing, Catalog, Product, Cart, Checkout, Account, system states, navbar/footer, light+dark tokens, responsive breakpoints). Admin (modules 7–9) will come from `Admin.dc.html`.
