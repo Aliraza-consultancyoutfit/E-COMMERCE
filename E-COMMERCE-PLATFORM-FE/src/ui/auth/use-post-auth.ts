@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { REDIRECTS } from "@/constants/routes";
 import { useAppDispatch } from "@/store/hooks";
+import { baseApi } from "@/store/base-api";
 import { setCredentials } from "@/store/auth/auth.slice";
 import type { AuthResponse } from "@/store/auth/auth.types";
 import { setToken } from "@/utils/auth-token";
@@ -18,6 +19,9 @@ export function usePostAuth() {
   return useCallback(
     (response: AuthResponse, welcome: string) => {
       setToken(response.accessToken);
+      // Drop any cache from a prior session so the new user never sees the
+      // previous user's profile/cart/orders.
+      dispatch(baseApi.util.resetApiState());
       dispatch(
         setCredentials({ user: response.user, token: response.accessToken }),
       );

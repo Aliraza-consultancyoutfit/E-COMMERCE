@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { PATHS } from "@/constants/routes";
 import { useAppSelector } from "@/store/hooks";
@@ -11,13 +11,21 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, isInitialized } = useAppSelector((state) => state.auth);
 
+  // The auth slice is seeded from the cookie after mount, so the singleton
+  // store can already hold a session on the client's first render while the
+  // server rendered logged-out. Gate on `mounted` so the first client render
+  // always matches the server HTML (the fallback), then reconcile after
+  // hydration — this also keeps guarded content out of the server HTML.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
-    if (isInitialized && !user) {
+    if (mounted && isInitialized && !user) {
       router.replace(PATHS.auth.signIn);
     }
-  }, [isInitialized, user, router]);
+  }, [mounted, isInitialized, user, router]);
 
-  if (!isInitialized || !user) {
+  if (!mounted || !isInitialized || !user) {
     return <GuardFallback />;
   }
 

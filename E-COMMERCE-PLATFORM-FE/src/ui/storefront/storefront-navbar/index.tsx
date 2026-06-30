@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyboardEvent, MouseEvent, useState } from "react";
+import { KeyboardEvent, MouseEvent, useEffect, useState } from "react";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -23,12 +23,11 @@ import { ShoppingCartIcon } from "@/assets/icons/common";
 import ThemeSwitch from "@/components/theme-switch";
 import HeartIcon from "@/ui/storefront/product-card/heart-icon";
 import { PATHS } from "@/constants/routes";
-import { logout } from "@/store/auth/auth.slice";
+import { signOut } from "@/store/auth/auth.actions";
 import { useGetProfileQuery } from "@/store/auth/auth.api";
 import { useGetCartQuery } from "@/store/cart/cart.api";
 import { useGetWishlistQuery } from "@/store/wishlist/wishlist.api";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { removeToken } from "@/utils/auth-token";
 
 const NAV_LINKS = [
   { label: "Shop", href: PATHS.catalog },
@@ -48,6 +47,13 @@ export default function StorefrontNavbar() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [search, setSearch] = useState("");
 
+  // Auth state hydrates from the cookie on the client, so the server renders
+  // logged-out. Gate auth-dependent UI on `mounted` so the first client render
+  // matches the server HTML and reconciles after hydration (no mismatch).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const showAccount = mounted && Boolean(user);
+
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "";
 
   const handleSearch = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -62,8 +68,7 @@ export default function StorefrontNavbar() {
   };
 
   const handleSignOut = () => {
-    removeToken();
-    dispatch(logout());
+    dispatch(signOut());
     setAnchorEl(null);
     router.push(PATHS.auth.signIn);
   };
@@ -149,7 +154,7 @@ export default function StorefrontNavbar() {
             <Box sx={{ display: { xs: "none", sm: "block" } }}>
               <ThemeSwitch />
             </Box>
-            {user && (
+            {showAccount && (
               <IconButton
                 component={NextLink}
                 href={`${PATHS.account}?tab=wishlist`}
@@ -176,7 +181,7 @@ export default function StorefrontNavbar() {
               </Badge>
             </IconButton>
 
-            {user ? (
+            {showAccount ? (
               <>
                 <Avatar
                   src={profile?.avatar || undefined}

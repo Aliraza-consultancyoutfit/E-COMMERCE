@@ -28,9 +28,8 @@ import NotificationsPanel from "@/ui/storefront/account/notifications-panel";
 import SettingsPanel from "@/ui/storefront/account/settings-panel";
 import { PATHS } from "@/constants/routes";
 import { useGetProfileQuery } from "@/store/auth/auth.api";
-import { logout } from "@/store/auth/auth.slice";
+import { signOut } from "@/store/auth/auth.actions";
 import { useAppDispatch } from "@/store/hooks";
-import { removeToken } from "@/utils/auth-token";
 
 type Section =
   | "profile"
@@ -90,8 +89,7 @@ function AccountContent() {
   const initials = (profile?.name || profile?.email || "?").slice(0, 2).toUpperCase();
 
   const handleSignOut = () => {
-    removeToken();
-    dispatch(logout());
+    dispatch(signOut());
     router.push(PATHS.auth.signIn);
   };
 

@@ -19,11 +19,10 @@ import { alpha } from "@mui/material/styles";
 import { MenuIcon, NotificationIcon, ShoppingCartIcon } from "@/assets/icons/common";
 import ThemeSwitch from "@/components/theme-switch";
 import { PATHS } from "@/constants/routes";
-import { logout } from "@/store/auth/auth.slice";
+import { signOut } from "@/store/auth/auth.actions";
 import { useGetProfileQuery } from "@/store/auth/auth.api";
 import { useGetAllOrdersQuery } from "@/store/orders/order.api";
 import { useAppDispatch } from "@/store/hooks";
-import { removeToken } from "@/utils/auth-token";
 
 const SIDEBAR_WIDTH = 248;
 
@@ -166,8 +165,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pendingCount = pending?.meta?.total ?? 0;
 
   const handleSignOut = () => {
-    removeToken();
-    dispatch(logout());
+    dispatch(signOut());
     router.push(PATHS.auth.signIn);
   };
 

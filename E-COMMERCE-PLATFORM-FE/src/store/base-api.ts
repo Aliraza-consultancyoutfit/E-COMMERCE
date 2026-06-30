@@ -36,6 +36,7 @@ const baseQueryWithAuth: BaseQueryFn<
   if (result.error?.status === UNAUTHORIZED) {
     removeToken();
     api.dispatch(logout());
+    api.dispatch(baseApi.util.resetApiState());
     if (
       typeof window !== "undefined" &&
       window.location.pathname !== PATHS.auth.signIn
