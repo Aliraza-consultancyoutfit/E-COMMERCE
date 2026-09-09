@@ -9,6 +9,7 @@ import { HealthModule } from "./modules/health/health.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { OrdersModule } from "./modules/orders/orders.module";
 import { ProductsModule } from "./modules/products/products.module";
+import { ReviewsModule } from "./modules/reviews/reviews.module";
 import { SettingsModule } from "./modules/settings/settings.module";
 import { UsersModule } from "./modules/users/users.module";
 import { WishlistModule } from "./modules/wishlist/wishlist.module";
@@ -31,6 +32,7 @@ import { WishlistModule } from "./modules/wishlist/wishlist.module";
     ProductsModule,
     CartModule,
     OrdersModule,
+    ReviewsModule,
     SettingsModule,
     ActivityModule,
     WishlistModule,

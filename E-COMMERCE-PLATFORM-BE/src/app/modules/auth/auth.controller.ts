@@ -1,5 +1,16 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import type { Response } from "express";
 import { CurrentUser } from "../../../libs/shared/src/decorators";
 import {
   ChangePasswordDto,
@@ -9,7 +20,7 @@ import {
 } from "../../../libs/shared/src/dto";
 import { UsersService } from "../users/users.service";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
-import { AuthService } from "./auth.service";
+import { AuthService, type SocialProvider } from "./auth.service";
 
 interface JwtUser {
   sub: string;
@@ -35,6 +46,42 @@ export class AuthController {
   @ApiOkResponse({ description: "Login and return a JWT." })
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Get("social/:provider")
+  socialRedirect(
+    @Param("provider") provider: SocialProvider,
+    @Res() response: Response,
+  ) {
+    try {
+      response.redirect(this.authService.getSocialAuthorizationUrl(provider));
+    } catch (error) {
+      response.redirect(
+        this.authService.buildSocialErrorRedirect(
+          error instanceof Error ? error.message : "Social sign-in failed",
+        ),
+      );
+    }
+  }
+
+  @Get("social/:provider/callback")
+  async socialCallbackGet(
+    @Param("provider") provider: SocialProvider,
+    @Query("code") code: string | undefined,
+    @Query("error") error: string | undefined,
+    @Res() response: Response,
+  ) {
+    await this.handleSocialCallback(provider, code, error, response);
+  }
+
+  @Post("social/:provider/callback")
+  async socialCallbackPost(
+    @Param("provider") provider: SocialProvider,
+    @Body("code") code: string | undefined,
+    @Body("error") error: string | undefined,
+    @Res() response: Response,
+  ) {
+    await this.handleSocialCallback(provider, code, error, response);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -71,5 +118,36 @@ export class AuthController {
       dto.currentPassword,
       dto.newPassword,
     );
+  }
+
+  private async handleSocialCallback(
+    provider: SocialProvider,
+    code: string | undefined,
+    error: string | undefined,
+    response: Response,
+  ) {
+    try {
+      if (error) {
+        response.redirect(this.authService.buildSocialErrorRedirect(error));
+        return;
+      }
+      if (!code) {
+        response.redirect(
+          this.authService.buildSocialErrorRedirect("Missing authorization code"),
+        );
+        return;
+      }
+
+      const authResponse = await this.authService.socialCallback(provider, code);
+      response.redirect(this.authService.buildSocialSuccessRedirect(authResponse));
+    } catch (callbackError) {
+      response.redirect(
+        this.authService.buildSocialErrorRedirect(
+          callbackError instanceof Error
+            ? callbackError.message
+            : "Social sign-in failed",
+        ),
+      );
+    }
   }
 }

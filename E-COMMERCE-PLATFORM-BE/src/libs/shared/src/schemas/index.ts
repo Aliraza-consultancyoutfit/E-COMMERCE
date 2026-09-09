@@ -6,3 +6,4 @@ export * from "./settings.schema";
 export * from "./wishlist.schema";
 export * from "./address.schema";
 export * from "./notification.schema";
+export * from "./review.schema";

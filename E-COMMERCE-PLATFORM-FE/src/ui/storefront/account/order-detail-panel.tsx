@@ -1,6 +1,7 @@
 "use client";
 
-import { Box, Skeleton, Stack, Typography } from "@mui/material";
+import NextLink from "next/link";
+import { Box, Button, Skeleton, Stack, Typography } from "@mui/material";
 import ApiErrorState from "@/components/api-error-state";
 import { TickIcon } from "@/assets/icons/common";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/ui/storefront/account/orders-panel";
 import { useGetOrderQuery } from "@/store/orders/order.api";
 import type { OrderStatus } from "@/store/orders/order.types";
+import { PATHS } from "@/constants/routes";
 import { formatCurrency } from "@/utils/format";
 
 const TIMELINE = ["Order placed", "Processing", "Shipped", "Delivered"];
@@ -194,8 +196,10 @@ export default function OrderDetailPanel({
         {order.items.map((item) => (
           <Stack
             key={item.product}
-            direction="row"
+            direction={{ xs: "column", sm: "row" }}
             justifyContent="space-between"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            spacing={1}
             sx={{ py: 0.75 }}
           >
             <Typography variant="body2">
@@ -204,9 +208,22 @@ export default function OrderDetailPanel({
                 × {item.quantity}
               </Box>
             </Typography>
-            <Typography variant="body2" fontWeight={600}>
-              {formatCurrency(item.lineTotal)}
-            </Typography>
+            <Stack direction="row" spacing={1.25} alignItems="center">
+              <Typography variant="body2" fontWeight={600}>
+                {formatCurrency(item.lineTotal)}
+              </Typography>
+              {order.status !== "cancelled" && (
+                <Button
+                  component={NextLink}
+                  href={`${PATHS.product(item.product)}?tab=reviews`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ minWidth: 86 }}
+                >
+                  Review
+                </Button>
+              )}
+            </Stack>
           </Stack>
         ))}
       </Box>

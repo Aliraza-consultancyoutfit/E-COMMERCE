@@ -40,3 +40,21 @@ export interface ProductQueryParams {
   maxPrice?: number;
   sort?: ProductSort;
 }
+
+export interface ProductReview {
+  _id: string;
+  product: string;
+  user: string;
+  userName: string;
+  rating: number;
+  title: string;
+  comment: string;
+  createdAt: string;
+}
+
+export interface CreateReviewArgs {
+  productId: string;
+  rating: number;
+  title: string;
+  comment: string;
+}

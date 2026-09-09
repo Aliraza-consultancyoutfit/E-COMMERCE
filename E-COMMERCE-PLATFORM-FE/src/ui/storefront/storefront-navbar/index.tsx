@@ -10,6 +10,8 @@ import {
   Box,
   Button,
   Container,
+  Divider,
+  Drawer,
   IconButton,
   InputBase,
   Menu,
@@ -19,7 +21,7 @@ import {
   Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { ShoppingCartIcon } from "@/assets/icons/common";
+import { CrossIcon, MenuIcon, ShoppingCartIcon } from "@/assets/icons/common";
 import ThemeSwitch from "@/components/theme-switch";
 import HeartIcon from "@/ui/storefront/product-card/heart-icon";
 import { PATHS } from "@/constants/routes";
@@ -45,6 +47,7 @@ export default function StorefrontNavbar() {
   const cartCount = cart?.summary.itemCount ?? 0;
   const wishlistCount = wishlist?.length ?? 0;
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   // Auth state hydrates from the cookie on the client, so the server renders
@@ -64,14 +67,18 @@ export default function StorefrontNavbar() {
           ? `${PATHS.catalog}?search=${encodeURIComponent(trimmed)}`
           : PATHS.catalog,
       );
+      setMobileOpen(false);
     }
   };
 
   const handleSignOut = () => {
     dispatch(signOut());
     setAnchorEl(null);
+    setMobileOpen(false);
     router.push(PATHS.auth.signIn);
   };
+
+  const closeMobileMenu = () => setMobileOpen(false);
 
   return (
     <AppBar
@@ -159,7 +166,7 @@ export default function StorefrontNavbar() {
                 component={NextLink}
                 href={`${PATHS.account}?tab=wishlist`}
                 aria-label="Wishlist"
-                sx={{ color: "text.primary" }}
+                sx={{ color: "text.primary", display: { xs: "none", sm: "inline-flex" } }}
               >
                 <Badge
                   badgeContent={wishlistCount}
@@ -196,6 +203,7 @@ export default function StorefrontNavbar() {
                     fontWeight: 600,
                     color: "primary.main",
                     bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                    display: { xs: "none", sm: "flex" },
                   }}
                 >
                   {initials}
@@ -220,13 +228,145 @@ export default function StorefrontNavbar() {
                 variant="contained"
                 component={NextLink}
                 href={PATHS.auth.signIn}
+                sx={{ display: { xs: "none", sm: "inline-flex" } }}
+              >
+                Sign in
+              </Button>
+            )}
+
+            <IconButton
+              aria-label="Open navigation"
+              onClick={() => setMobileOpen(true)}
+              sx={{
+                color: "text.primary",
+                display: { xs: "inline-flex", md: "none" },
+              }}
+            >
+              <MenuIcon width="26" height="26" stroke="currentColor" />
+            </IconButton>
+          </Stack>
+        </Toolbar>
+      </Container>
+
+      <Drawer
+        anchor="right"
+        open={mobileOpen}
+        onClose={closeMobileMenu}
+        PaperProps={{
+          sx: {
+            width: { xs: "86vw", sm: 360 },
+            maxWidth: 380,
+            p: 2.5,
+          },
+        }}
+      >
+        <Stack spacing={2.5} sx={{ height: "100%" }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6" fontWeight={700}>
+              Menu
+            </Typography>
+            <IconButton aria-label="Close navigation" onClick={closeMobileMenu}>
+              <CrossIcon width="22" height="22" stroke="currentColor" />
+            </IconButton>
+          </Stack>
+
+          <InputBase
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onKeyDown={handleSearch}
+            placeholder="Search products"
+            inputProps={{ "aria-label": "Search products" }}
+            sx={{
+              width: "100%",
+              height: 44,
+              px: 2,
+              borderRadius: 1.5,
+              border: 1,
+              borderColor: "divider",
+              bgcolor: "background.default",
+            }}
+          />
+
+          <Stack component="nav" aria-label="Mobile navigation" spacing={0.75}>
+            {NAV_LINKS.map((link) => (
+              <Button
+                key={link.label}
+                component={NextLink}
+                href={link.href}
+                onClick={closeMobileMenu}
+                color="inherit"
+                fullWidth
+                sx={{ justifyContent: "flex-start", py: 1.25, fontWeight: 600 }}
+              >
+                {link.label}
+              </Button>
+            ))}
+          </Stack>
+
+          <Divider />
+
+          <Stack spacing={1}>
+            <Button
+              component={NextLink}
+              href={PATHS.cart}
+              onClick={closeMobileMenu}
+              color="inherit"
+              fullWidth
+              sx={{ justifyContent: "space-between", py: 1.25, fontWeight: 600 }}
+            >
+              Cart
+              <Badge badgeContent={cartCount} color="primary" />
+            </Button>
+            {showAccount ? (
+              <>
+                <Button
+                  component={NextLink}
+                  href={PATHS.account}
+                  onClick={closeMobileMenu}
+                  color="inherit"
+                  fullWidth
+                  sx={{ justifyContent: "flex-start", py: 1.25, fontWeight: 600 }}
+                >
+                  My account
+                </Button>
+                <Button
+                  component={NextLink}
+                  href={`${PATHS.account}?tab=wishlist`}
+                  onClick={closeMobileMenu}
+                  color="inherit"
+                  fullWidth
+                  sx={{ justifyContent: "space-between", py: 1.25, fontWeight: 600 }}
+                >
+                  Wishlist
+                  <Badge badgeContent={wishlistCount} color="primary" />
+                </Button>
+                <Button
+                  onClick={handleSignOut}
+                  color="inherit"
+                  fullWidth
+                  sx={{ justifyContent: "flex-start", py: 1.25, fontWeight: 600 }}
+                >
+                  Sign out
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="contained"
+                component={NextLink}
+                href={PATHS.auth.signIn}
+                onClick={closeMobileMenu}
+                fullWidth
               >
                 Sign in
               </Button>
             )}
           </Stack>
-        </Toolbar>
-      </Container>
+
+          <Box sx={{ mt: "auto" }}>
+            <ThemeSwitch />
+          </Box>
+        </Stack>
+      </Drawer>
     </AppBar>
   );
 }

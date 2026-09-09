@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { PATHS } from "@/constants/routes";
 import { useAppSelector } from "@/store/hooks";
@@ -21,8 +21,14 @@ export default function RoleGuard({ role, children }: RoleGuardProps) {
   const { user, isInitialized } = useAppSelector((state) => state.auth);
   const isAllowed = user?.role === role;
 
+  // The auth slice is seeded from the cookie on the client, so the first client
+  // render can already know the role while the server rendered the fallback.
+  // Gate on `mounted` so the first client render matches the server HTML.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
-    if (!isInitialized) {
+    if (!mounted || !isInitialized) {
       return;
     }
     if (!user) {
@@ -30,9 +36,9 @@ export default function RoleGuard({ role, children }: RoleGuardProps) {
     } else if (!isAllowed) {
       router.replace(PATHS.home);
     }
-  }, [isInitialized, user, isAllowed, router]);
+  }, [mounted, isInitialized, user, isAllowed, router]);
 
-  if (!isInitialized || !isAllowed) {
+  if (!mounted || !isInitialized || !isAllowed) {
     return <GuardFallback />;
   }
 

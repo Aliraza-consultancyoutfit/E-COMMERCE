@@ -1,11 +1,14 @@
 "use client";
 
-import toast from "react-hot-toast";
 import { Button, Divider, Stack } from "@mui/material";
 import { AppleIcon, GoogleIcon } from "@/assets/icons/common";
 
-const notifyUnavailable = () =>
-  toast("Social sign-in isn't available in this demo coming soon!", { icon: "ℹ️" });
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
+
+const startSocialAuth = (provider: "google" | "apple") => {
+  window.location.href = `${API_BASE_URL}/auth/social/${provider}`;
+};
 
 const buttonSx = {
   height: 48,
@@ -24,7 +27,7 @@ export default function SocialAuthButtons() {
         <Button
           fullWidth
           variant="outlined"
-          onClick={notifyUnavailable}
+          onClick={() => startSocialAuth("google")}
           startIcon={<GoogleIcon width="18" height="18" />}
           sx={buttonSx}
         >
@@ -33,7 +36,7 @@ export default function SocialAuthButtons() {
         <Button
           fullWidth
           variant="outlined"
-          onClick={notifyUnavailable}
+          onClick={() => startSocialAuth("apple")}
           startIcon={<AppleIcon width="17" height="17" />}
           sx={buttonSx}
         >

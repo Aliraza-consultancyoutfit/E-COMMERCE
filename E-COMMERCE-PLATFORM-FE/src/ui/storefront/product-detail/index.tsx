@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import NextLink from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import toast from "react-hot-toast";
 import {
   Box,
   Breadcrumbs,
@@ -10,8 +11,10 @@ import {
   Chip,
   Container,
   Link as MuiLink,
+  Rating,
   Skeleton,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -33,9 +36,13 @@ import {
 } from "@/ui/storefront/category-visuals";
 import { PATHS } from "@/constants/routes";
 import {
+  useCreateProductReviewMutation,
   useGetProductQuery,
+  useGetProductReviewsQuery,
   useGetProductsQuery,
 } from "@/store/products/products.api";
+import { useGetMyOrdersQuery } from "@/store/orders/order.api";
+import { useAppSelector } from "@/store/hooks";
 import { useAddToCart } from "@/ui/storefront/use-add-to-cart";
 import { formatCurrency } from "@/utils/format";
 
@@ -49,15 +56,31 @@ const FEATURES = [
 
 export default function ProductDetail({ id }: { id: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const user = useAppSelector((state) => state.auth.user);
   const { add, isLoading: isAdding } = useAddToCart();
   const { toggle, isWishlisted, isBusy: isWishlistBusy } = useWishlistToggle();
   const { data: product, isLoading, isError, refetch } =
     useGetProductQuery(id);
+  const {
+    data: reviews = [],
+    isLoading: isReviewsLoading,
+    refetch: refetchReviews,
+  } = useGetProductReviewsQuery(id);
+  const { data: orders = [], isLoading: isOrdersLoading } = useGetMyOrdersQuery(
+    undefined,
+    { skip: !user },
+  );
+  const [createReview, { isLoading: isCreatingReview }] =
+    useCreateProductReviewMutation();
 
   const [qty, setQty] = useState(1);
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(searchParams.get("tab") === "reviews" ? 2 : 0);
   const [activeImage, setActiveImage] = useState(0);
   const [zoom, setZoom] = useState({ active: false, x: 50, y: 50 });
+  const [reviewRating, setReviewRating] = useState<number | null>(5);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewComment, setReviewComment] = useState("");
 
   const gallery =
     product?.images && product.images.length > 0
@@ -126,12 +149,48 @@ export default function ProductDetail({ id }: { id: string }) {
   const related = (relatedData?.records ?? [])
     .filter((item) => item._id !== product._id)
     .slice(0, 4);
+  const purchasedProduct = orders.some(
+    (order) =>
+      order.status !== "cancelled" &&
+      order.items.some((item) => item.product === product._id),
+  );
+  const myReview = user
+    ? reviews.find((review) => review.user === user.id)
+    : undefined;
 
   const handleAddToCart = () => add(product._id, qty);
   const handleBuyNow = async () => {
     const added = await add(product._id, qty);
     if (added) {
       router.push(PATHS.cart);
+    }
+  };
+  const handleReviewSubmit = async () => {
+    if (!reviewRating) {
+      return;
+    }
+
+    try {
+      await createReview({
+        productId: product._id,
+        rating: reviewRating,
+        title: reviewTitle.trim(),
+        comment: reviewComment.trim(),
+      }).unwrap();
+      setReviewTitle("");
+      setReviewComment("");
+      setReviewRating(5);
+      await refetchReviews();
+      toast.success("Review added");
+    } catch (error) {
+      const message =
+        typeof error === "object" &&
+        error !== null &&
+        "data" in error &&
+        typeof (error as { data?: { message?: unknown } }).data?.message === "string"
+          ? (error as { data: { message: string } }).data.message
+          : "Could not add review";
+      toast.error(message);
     }
   };
 
@@ -465,7 +524,7 @@ export default function ProductDetail({ id }: { id: string }) {
           </Stack>
         )}
         {tab === 2 && (
-          <Stack spacing={2}>
+          <Stack spacing={2.5}>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <Typography variant="h4" fontWeight={700}>
                 {product.rating}
@@ -479,9 +538,115 @@ export default function ProductDetail({ id }: { id: string }) {
                 Based on {product.reviews} verified reviews
               </Typography>
             </Stack>
-            <Typography variant="body2" color="text.secondary">
-              Individual customer reviews aren&apos;t available in this demo.
-            </Typography>
+
+            {user ? (
+              <Box sx={{ border: 1, borderColor: "divider", borderRadius: 4, p: 2.5 }}>
+                {myReview ? (
+                  <Typography variant="body2" color="text.secondary">
+                    You already reviewed this product. Thanks for sharing your experience.
+                  </Typography>
+                ) : isOrdersLoading ? (
+                  <Skeleton variant="rounded" height={118} />
+                ) : purchasedProduct ? (
+                  <Stack spacing={1.75}>
+                    <Typography fontWeight={700}>Write a review</Typography>
+                    <Rating
+                      value={reviewRating}
+                      onChange={(_event, value) => setReviewRating(value)}
+                    />
+                    <TextField
+                      label="Title"
+                      value={reviewTitle}
+                      onChange={(event) => setReviewTitle(event.target.value)}
+                      inputProps={{ maxLength: 80 }}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Review"
+                      value={reviewComment}
+                      onChange={(event) => setReviewComment(event.target.value)}
+                      inputProps={{ maxLength: 1000 }}
+                      multiline
+                      minRows={4}
+                      fullWidth
+                    />
+                    <Button
+                      variant="contained"
+                      disabled={
+                        isCreatingReview ||
+                        !reviewRating ||
+                        reviewTitle.trim().length < 3 ||
+                        reviewComment.trim().length < 10
+                      }
+                      onClick={handleReviewSubmit}
+                      sx={{ alignSelf: "flex-start" }}
+                    >
+                      Submit review
+                    </Button>
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    Buy this product first to leave a verified review.
+                  </Typography>
+                )}
+              </Box>
+            ) : (
+              <Box sx={{ border: 1, borderColor: "divider", borderRadius: 4, p: 2.5 }}>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ sm: "center" }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+                    Sign in with the account used for checkout to leave a verified review.
+                  </Typography>
+                  <Button variant="outlined" onClick={() => router.push(PATHS.auth.signIn)}>
+                    Sign in
+                  </Button>
+                </Stack>
+              </Box>
+            )}
+
+            {isReviewsLoading ? (
+              <Stack spacing={1.5}>
+                <Skeleton variant="rounded" height={112} />
+                <Skeleton variant="rounded" height={112} />
+              </Stack>
+            ) : reviews.length > 0 ? (
+              <Stack spacing={1.5}>
+                {reviews.map((review) => (
+                  <Box
+                    key={review._id}
+                    sx={{
+                      border: 1,
+                      borderColor: "divider",
+                      borderRadius: 4,
+                      p: 2.5,
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="flex-start"
+                      spacing={2}
+                      sx={{ mb: 1 }}
+                    >
+                      <Box>
+                        <Typography fontWeight={700}>{review.title}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {review.userName} -{" "}
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                      <Rating value={review.rating} readOnly size="small" />
+                    </Stack>
+                    <Typography color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                      {review.comment}
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No customer reviews yet.
+              </Typography>
+            )}
           </Stack>
         )}
       </Box>

@@ -4,6 +4,8 @@ import type {
   ProductCategory,
   ProductListResponse,
   ProductQueryParams,
+  ProductReview,
+  CreateReviewArgs,
 } from "./products.types";
 
 export const productApi = baseApi.injectEndpoints({
@@ -19,6 +21,24 @@ export const productApi = baseApi.injectEndpoints({
     getCategories: builder.query<ProductCategory[], void>({
       query: () => ({ url: "/products/categories" }),
       providesTags: ["Product"],
+    }),
+    getProductReviews: builder.query<ProductReview[], string>({
+      query: (productId) => ({ url: `/products/${productId}/reviews` }),
+      providesTags: (_result, _error, productId) => [
+        { type: "Review", id: productId },
+      ],
+    }),
+    createProductReview: builder.mutation<ProductReview, CreateReviewArgs>({
+      query: ({ productId, ...body }) => ({
+        url: `/products/${productId}/reviews`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { productId }) => [
+        { type: "Review", id: productId },
+        { type: "Product", id: productId },
+        "Product",
+      ],
     }),
     createProduct: builder.mutation<Product, Partial<Product>>({
       query: (body) => ({ url: "/products", method: "POST", body }),
@@ -40,6 +60,8 @@ export const {
   useGetProductsQuery,
   useGetProductQuery,
   useGetCategoriesQuery,
+  useGetProductReviewsQuery,
+  useCreateProductReviewMutation,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
